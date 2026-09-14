@@ -56,14 +56,36 @@ export const addOrderItems = async (req, res) => {
   }
 };
 
-// @desc    Get all orders
-// @route   GET /api/orders
-// @access  Private/Admin
-export const getOrders = async (req, res) => {
+// @desc    Get order by ID
+// @route   GET /api/orders/:id
+// @access  Public
+export const getOrderById = async (req, res) => {
   try {
-    const orders = await Order.find({}).sort({ createdAt: -1 }).populate('user', 'id name email');
-    res.json(orders);
+    const order = await Order.findById(req.params.id).populate('user', 'name email');
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+    res.json(order);
   } catch (error) {
-    res.status(500).json({ message: 'Failed to fetch orders' });
+    res.status(500).json({ message: 'Error loading order' });
   }
 };
+
+// @desc    Download Order PDF Invoice
+// @route   GET /api/orders/:id/invoice
+// @access  Public
+export const downloadOrderInvoice = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id).populate('user', 'name email');
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    const { generateInvoicePDF } = await import('../utils/pdfInvoiceGenerator.js');
+    generateInvoicePDF(order, res);
+  } catch (error) {
+    console.error('Invoice error:', error);
+    res.status(500).json({ message: 'Failed to generate PDF invoice' });
+  }
+};
+

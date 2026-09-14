@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 const API_BASE_URL = 'http://localhost:3001/api';
+
+const COLORS = ['#000000', '#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState(null);
@@ -120,6 +123,53 @@ const AdminDashboard = () => {
             </div>
           </div>
 
+          {/* Analytics Visualizations */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-10">
+            {/* Revenue Trend Area Chart */}
+            <div className="lg:col-span-8 bg-white border border-gray-100 p-6 rounded-sm shadow-sm">
+              <h2 className="text-xs font-bold tracking-widest uppercase text-gray-900 mb-4 pb-2 border-b border-gray-100">
+                Monthly Revenue Trend (LKR)
+              </h2>
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={stats.monthlyRevenue || []}>
+                    <XAxis dataKey="month" stroke="#888888" fontSize={11} />
+                    <YAxis stroke="#888888" fontSize={11} />
+                    <Tooltip formatter={(value) => [`LKR ${Number(value).toLocaleString()}`, 'Revenue']} />
+                    <Area type="monotone" dataKey="revenue" stroke="#000000" fill="#f3f4f6" strokeWidth={2} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Category Distribution Pie Chart */}
+            <div className="lg:col-span-4 bg-white border border-gray-100 p-6 rounded-sm shadow-sm">
+              <h2 className="text-xs font-bold tracking-widest uppercase text-gray-900 mb-4 pb-2 border-b border-gray-100">
+                Product Category Distribution
+              </h2>
+              <div className="h-64 w-full flex items-center justify-center">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={stats.categoryBreakdown || []}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={80}
+                      paddingAngle={4}
+                      dataKey="value"
+                    >
+                      {(stats.categoryBreakdown || []).map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* Recent Orders Overview */}
             <div className="lg:col-span-7 bg-white border border-gray-100 p-6 rounded-sm shadow-sm">
@@ -232,3 +282,5 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
+
+

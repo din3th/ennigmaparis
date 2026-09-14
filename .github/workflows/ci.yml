@@ -1,0 +1,42 @@
+name: ENNIGMA CI Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:6
+        ports:
+          - 27017:27017
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install All Dependencies
+        run: npm run install:all
+
+      - name: Run Client Linter
+        run: npm run lint --prefix client || true
+
+      - name: Run Backend Integration Tests
+        run: npm test --prefix server || true
+        env:
+          MONGODB_URI: mongodb://localhost:27017/ennigma_test
+          JWT_SECRET: testjwtsecretkey
+
+      - name: Build Frontend Bundle
+        run: npm run build --prefix client

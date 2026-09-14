@@ -46,6 +46,28 @@ const AdminOrders = () => {
     }
   };
 
+  const handleExportCSV = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/admin/export/orders`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'ennigma-orders-export.csv');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      alert('Failed to export orders CSV');
+    }
+  };
+
+  const handleDownloadInvoice = (orderId) => {
+    window.open(`${API_BASE_URL}/orders/${orderId}/invoice`, '_blank');
+  };
+
   return (
     <div className="py-6">
       <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-200">
@@ -53,7 +75,15 @@ const AdminOrders = () => {
           <span className="text-xs uppercase tracking-widest text-gray-400 font-bold">Fulfillment Center</span>
           <h1 className="text-2xl font-serif tracking-tight text-gray-900 mt-1">Order Status & Dispatch</h1>
         </div>
-        <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{orders.length} Total Orders</span>
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={handleExportCSV}
+            className="bg-black text-white px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-sm hover:bg-gray-800 transition-colors cursor-pointer"
+          >
+            Export Orders CSV
+          </button>
+          <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{orders.length} Total Orders</span>
+        </div>
       </div>
       
       {loading ? (
@@ -72,6 +102,7 @@ const AdminOrders = () => {
                   <th className="py-3 px-4">Payment Status</th>
                   <th className="py-3 px-4">Order Status</th>
                   <th className="py-3 px-4">Total</th>
+                  <th className="py-3 px-4">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 font-sans">
@@ -118,11 +149,19 @@ const AdminOrders = () => {
                       </select>
                     </td>
                     <td className="py-4 px-4 font-bold text-gray-900">LKR {order.total ? order.total.toLocaleString('en-US') : '0'}</td>
+                    <td className="py-4 px-4">
+                      <button
+                        onClick={() => handleDownloadInvoice(order._id)}
+                        className="text-xs text-blue-600 underline font-semibold hover:text-blue-900 cursor-pointer"
+                      >
+                        PDF Invoice
+                      </button>
+                    </td>
                   </tr>
                 ))}
                 {orders.length === 0 && (
                   <tr>
-                    <td colSpan="6" className="py-8 text-center text-gray-400 font-sans">No orders recorded in the system.</td>
+                    <td colSpan="7" className="py-8 text-center text-gray-400 font-sans">No orders recorded in the system.</td>
                   </tr>
                 )}
               </tbody>

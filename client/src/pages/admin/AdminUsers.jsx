@@ -86,6 +86,25 @@ const AdminUsers = () => {
     );
   }
 
+  const handleExportCSV = async () => {
+    const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
+    try {
+      const response = await axios.get(`${API_BASE_URL}/admin/export/customers`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'ennigma-customers-export.csv');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      alert('Failed to export customers CSV');
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-8">
       {/* Header */}
@@ -95,13 +114,22 @@ const AdminUsers = () => {
           <h1 className="text-3xl font-serif text-gray-900 mt-1">ENNIGMA User Management</h1>
           <p className="text-xs text-gray-500 mt-1">View registered members, assign permissions, and maintain accounts.</p>
         </div>
-        <button
-          onClick={fetchUsers}
-          className="self-start md:self-auto inline-flex items-center gap-2 border border-gray-300 px-4 py-2 text-xs font-bold uppercase tracking-wider hover:bg-gray-50 transition-colors"
-        >
-          <RefreshCw size={14} /> Refresh List
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleExportCSV}
+            className="bg-black text-white px-4 py-2 text-xs font-bold uppercase tracking-wider hover:bg-gray-800 transition-colors cursor-pointer"
+          >
+            Export CSV
+          </button>
+          <button
+            onClick={fetchUsers}
+            className="inline-flex items-center gap-2 border border-gray-300 px-4 py-2 text-xs font-bold uppercase tracking-wider hover:bg-gray-50 transition-colors cursor-pointer"
+          >
+            <RefreshCw size={14} /> Refresh List
+          </button>
+        </div>
       </div>
+
 
       {/* Action Banner */}
       {actionMsg && (

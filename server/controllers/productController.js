@@ -7,7 +7,7 @@ import BackInStock from '../models/BackInStock.js';
 // @access  Public
 export const getProducts = async (req, res) => {
   try {
-    const { category, subcategory, search, sort, minPrice, maxPrice, featured } = req.query;
+    const { category, subcategory, search, sort, minPrice, maxPrice, featured, color, size, inStock } = req.query;
 
     let query = {};
 
@@ -19,6 +19,15 @@ export const getProducts = async (req, res) => {
     }
     if (featured === 'true') {
       query.isFeatured = true;
+    }
+    if (inStock === 'true') {
+      query.stock = { $gt: 0 };
+    }
+    if (color) {
+      query.colors = { $in: [new RegExp(color, 'i')] };
+    }
+    if (size) {
+      query.sizes = { $in: [new RegExp(size, 'i')] };
     }
     if (search) {
       query.$or = [
@@ -116,6 +125,8 @@ export const updateProduct = async (req, res) => {
       return res.status(404).json({ message: 'Product not found' });
     }
 
+    const previousStock = product.stock;
+
     product.name = req.body.name || product.name;
     product.price = req.body.price !== undefined ? req.body.price : product.price;
     product.salePrice = req.body.salePrice !== undefined ? req.body.salePrice : product.salePrice;
@@ -128,6 +139,20 @@ export const updateProduct = async (req, res) => {
     product.isNewArrival = req.body.isNewArrival !== undefined ? req.body.isNewArrival : product.isNewArrival;
 
     const updatedProduct = await product.save();
+
+    // Trigger back in stock notifications if stock went from 0 to > 0
+    if (previousStock <= 0 && updatedProduct.stock > 0) {
+      const pendingRequests = await BackInStock.find({ product: updatedProduct._id, notified: false });
+      if (pendingRequests.length > 0) {
+        const { sendBackInStockEmail } = await import('../utils/emailService.js');
+        for (const reqObj of pendingRequests) {
+          await sendBackInStockEmail(reqObj.email, updatedProduct);
+          reqObj.notified = true;
+          await reqObj.save();
+        }
+      }
+    }
+
     res.json(updatedProduct);
   } catch (error) {
     res.status(500).json({ message: 'Error updating product' });

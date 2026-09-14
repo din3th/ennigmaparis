@@ -280,3 +280,64 @@ export const sendWelcomeEmail = async (user) => {
     console.error('Failed to send welcome email:', error.message);
   }
 };
+
+export const sendBackInStockEmail = async (email, product) => {
+  if (!email || !product) return;
+
+  const emailHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Back in Stock - ENNIGMA PARIS</title>
+    </head>
+    <body style="margin: 0; padding: 0; background-color: #f9f9f9; font-family: 'Georgia', serif;">
+      <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f9f9f9; padding: 40px 10px;">
+        <tr>
+          <td align="center">
+            <table width="600" border="0" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border: 1px solid #eaeaea; padding: 40px;">
+              <tr>
+                <td align="center" style="padding-bottom: 30px; border-bottom: 1px solid #eee;">
+                  <h1 style="font-size: 26px; font-weight: normal; letter-spacing: 4px; text-transform: uppercase; margin: 0; color: #000;">
+                    ENNIGMA PARIS
+                  </h1>
+                  <p style="font-family: 'Helvetica Neue', sans-serif; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #888; margin-top: 8px;">
+                    Back In Stock Alert
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding: 30px 0 20px 0; font-family: 'Helvetica Neue', sans-serif; font-size: 14px; color: #333; line-height: 1.6;">
+                  Good news! The item you requested, <strong>${product.name}</strong>, is now back in stock.<br/><br/>
+                  Quantities are limited in our atelier. Complete your purchase now to secure your piece.
+                </td>
+              </tr>
+              <tr>
+                <td align="center" style="padding: 20px 0;">
+                  <a href="${process.env.FRONTEND_URL || 'http://localhost:5174'}/product/${product.slug || product._id}" style="background-color: #000000; color: #ffffff; text-decoration: none; padding: 14px 30px; font-family: 'Helvetica Neue', sans-serif; font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; display: inline-block;">
+                    View Product & Shop
+                  </a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `;
+
+  try {
+    const transporter = await getTransporter();
+    await transporter.sendMail({
+      from: `"${process.env.EMAIL_FROM_NAME || 'ENNIGMA PARIS'}" <${process.env.EMAIL_FROM_ADDRESS || 'fourthpeerson@gmail.com'}>`,
+      to: email,
+      subject: `Back in Stock: ${product.name} - ENNIGMA PARIS`,
+      html: emailHtml,
+    });
+    console.log(`✅ Back in stock alert sent to ${email}`);
+  } catch (error) {
+    console.error('Failed to send back in stock email:', error.message);
+  }
+};
+

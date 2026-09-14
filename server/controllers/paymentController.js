@@ -90,3 +90,42 @@ export const confirmCodOrder = async (req, res) => {
     message: 'Cash on Delivery order placed successfully! Payment will be collected upon delivery.',
   });
 };
+
+// @desc    Handle Stripe Webhook Events
+// @route   POST /api/payments/webhook
+// @access  Public
+export const handleStripeWebhook = async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  try {
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+    if (!stripeSecretKey || !webhookSecret) {
+      return res.status(200).json({ received: true, mode: 'mock/unconfigured' });
+    }
+
+    const Stripe = (await import('stripe')).default;
+    const stripe = new Stripe(stripeSecretKey);
+
+    const event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+
+    if (event.type === 'payment_intent.succeeded') {
+      const paymentIntent = event.data.object;
+      const orderId = paymentIntent.metadata.orderId;
+      if (orderId) {
+        const Order = (await import('../models/Order.js')).default;
+        await Order.findByIdAndUpdate(orderId, {
+          paymentStatus: 'Completed',
+          orderStatus: 'Processing',
+        });
+      }
+    }
+
+    res.json({ received: true });
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err.message);
+    res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+};
+
+
