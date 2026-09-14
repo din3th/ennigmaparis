@@ -1,0 +1,489 @@
+[
+  {
+    "name": "MANGO Black Mini Dress",
+    "slug": "mango-black-mini-dress",
+    "description": "Effortlessly refined with a bold, feminine edge, this MANGO mini dress is designed to stand out while remaining easy to wear. Crafted in a lightweight, textured fabric, it features a deep V neckline with delicate loop detailing that adds subtle structure and visual interest. The fitted bodice flows into a softly pleated skirt, creating movement and a flattering silhouette.",
+    "price": 4380,
+    "salePrice": null,
+    "images": [
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/4-111.png?v=1777701432",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/4-211.png?v=1777701432",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/4-511.png?v=1777701432",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/4-311.png?v=1777701433",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/4-411.png?v=1777701432",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/4-711.png?v=1777701432"
+    ],
+    "category": "Women",
+    "subcategory": "Dresses & Evening Gowns",
+    "sizes": [
+      "8",
+      "12",
+      "14"
+    ],
+    "stock": 12,
+    "brand": "ENNIGMA PARIS",
+    "isFeatured": true,
+    "isNewArrival": true,
+    "collectionName": "The Calm Edit",
+    "rating": 4.8,
+    "numReviews": 3
+  },
+  {
+    "name": "American Eagle Dress",
+    "slug": "american-eagle-dress-1",
+    "description": "Light, airy, and made for sun-filled days, this American Eagle dress features a soft embroidered fabric that adds subtle texture and detail throughout. Designed in a fresh off-white tone, it brings an easy, effortless feel perfect for warm-weather dressing. The structured bodice is complemented by delicate straps that cross over at the back, finished with an adjustable lace-up tie that adds both function and a standout detail. Cut-out sides and a flowing midi-length skirt create a flattering, feminine silhouette with natural movement, making it ideal for beach days, holidays, or relaxed outings.",
+    "price": 6800,
+    "salePrice": null,
+    "images": [
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/8-1_11.png?v=1777697572",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/8-2_11.png?v=1777697572",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/8-5_11.png?v=1777697572",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/8-3_11.png?v=1777697572",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/8-4_11.png?v=1777697572",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/8-6_11.png?v=1777697572"
+    ],
+    "category": "Women",
+    "subcategory": "Dresses & Evening Gowns",
+    "sizes": [
+      "4",
+      "6",
+      "8",
+      "12"
+    ],
+    "stock": 12,
+    "brand": "ENNIGMA PARIS",
+    "isFeatured": true,
+    "isNewArrival": true,
+    "collectionName": "The Calm Edit",
+    "rating": 4.8,
+    "numReviews": 3
+  },
+  {
+    "name": "Old Navy Dress",
+    "slug": "old-navy-dress",
+    "description": "Light, comfortable, and effortlessly cute, this Old Navy white maxi dress features delicate thin straps and a relaxed, flowy silhouette. Designed with tiny floral details evenly spread across the fabric, it adds a subtle feminine charm without feeling busy. The breathable material and easy fit make it perfect for warm days, casual outings, or relaxed weekend wear. Simple yet versatile, it’s an everyday essential that combines comfort with soft, effortless style.",
+    "price": 5890,
+    "salePrice": null,
+    "images": [
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/10-11.png?v=1777705080",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/10-21.png?v=1777705080",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/10-51.png?v=1777705079",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/10-31.png?v=1777705083",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/10-41.png?v=1777705080",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/10-61.png?v=1777705079"
+    ],
+    "category": "Women",
+    "subcategory": "Dresses & Evening Gowns",
+    "sizes": [
+      "White",
+      "Orange"
+    ],
+    "stock": 12,
+    "brand": "ENNIGMA PARIS",
+    "isFeatured": true,
+    "isNewArrival": true,
+    "collectionName": "The Calm Edit",
+    "rating": 4.8,
+    "numReviews": 3
+  },
+  {
+    "name": "Cottage Midi Dress",
+    "slug": "cottage-midi-dress",
+    "description": "Soft, romantic, and effortlessly feminine, this strappy cottage midi dress captures a timeless countryside charm. Designed with delicate thin straps and a flowing full-length silhouette, it drapes beautifully for a light, airy feel. The gentle green tone adds a natural, earthy touch, while the relaxed fit makes it perfect for warm days, slow mornings, and sunset strolls. Easy to style and endlessly wearable, it brings a subtle vintage-inspired elegance to everyday dressing.",
+    "price": 5680,
+    "salePrice": null,
+    "images": [
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/5-11.png?v=1777704538",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/5-21.png?v=1777704538",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/5-22.png?v=1777704538",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/5-31.png?v=1777704538",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/5-51.png?v=1777704538",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/5-6_11.png?v=1777704538"
+    ],
+    "category": "Women",
+    "subcategory": "Dresses & Evening Gowns",
+    "sizes": [
+      "8",
+      "10",
+      "12",
+      "14"
+    ],
+    "stock": 12,
+    "brand": "ENNIGMA PARIS",
+    "isFeatured": true,
+    "isNewArrival": true,
+    "collectionName": "The Calm Edit",
+    "rating": 4.8,
+    "numReviews": 3
+  },
+  {
+    "name": "Smocked White Midi Dress",
+    "slug": "smocked-white-midi-dress",
+    "description": "A light and airy strapless midi dress with a smocked bodice and ruffle detail, designed for effortless summer elegance. The soft white base and delicate floral print create a clean, fresh look ideal for warm days and relaxed outings.",
+    "price": 5680,
+    "salePrice": null,
+    "images": [
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/13-11.png?v=1777704375",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/13-21.png?v=1777704375",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/13-61.png?v=1777704379",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/13-31.png?v=1777704376",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/13-41.png?v=1777704375",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/13-51.png?v=1777704375"
+    ],
+    "category": "Women",
+    "subcategory": "Dresses & Evening Gowns",
+    "sizes": [
+      "12"
+    ],
+    "stock": 12,
+    "brand": "ENNIGMA PARIS",
+    "isFeatured": true,
+    "isNewArrival": true,
+    "collectionName": "The Calm Edit",
+    "rating": 4.8,
+    "numReviews": 3
+  },
+  {
+    "name": "Orange Smocked Midi Dress",
+    "slug": "orange-smocked-midi-dress",
+    "description": "A breezy strapless midi dress featuring a smocked bodice and soft ruffle neckline for a flattering, comfortable fit. The lightweight fabric flows effortlessly with a warm floral print, making it perfect for beach days, vacations, and easy summer styling.",
+    "price": 5680,
+    "salePrice": null,
+    "images": [
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/14-11.png?v=1777704061",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/14-21.png?v=1777704061",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/14-51.png?v=1777704061",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/14-31.png?v=1777704061",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/14-41.png?v=1777704065",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/14-61.png?v=1777704061"
+    ],
+    "category": "Women",
+    "subcategory": "Dresses & Evening Gowns",
+    "sizes": [
+      "4",
+      "6"
+    ],
+    "stock": 12,
+    "brand": "ENNIGMA PARIS",
+    "isFeatured": true,
+    "isNewArrival": true,
+    "collectionName": "The Calm Edit",
+    "rating": 4.8,
+    "numReviews": 3
+  },
+  {
+    "name": "Free Assembly Dress",
+    "slug": "free-assembly-dress",
+    "description": "A timeless silhouette with a playful twist, this Free Assembly polka dot midi dress blends effortless elegance with everyday comfort. Designed with a flattering fitted bodice and flowy skirt, it features soft puff sleeves, a gentle square neckline, and a breezy, lightweight fabric that moves beautifully with you. The classic navy base with crisp white polka dots adds a vintage-inspired charm, while the relaxed fit and airy construction make it perfect for warm days, beach outings, or casual evenings. Easy to dress up or down, this piece is a versatile staple for a refined yet relaxed wardrobe.",
+    "price": 5680,
+    "salePrice": null,
+    "images": [
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/2-11.png?v=1777703847",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/2-41.png?v=1777703844",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/2-21.png?v=1777703844",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/2-31.png?v=1777703844",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/2-61.png?v=1777703844",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/2-51.png?v=1777703843"
+    ],
+    "category": "Women",
+    "subcategory": "Dresses & Evening Gowns",
+    "sizes": [
+      "6",
+      "8"
+    ],
+    "stock": 12,
+    "brand": "ENNIGMA PARIS",
+    "isFeatured": true,
+    "isNewArrival": true,
+    "collectionName": "The Calm Edit",
+    "rating": 4.8,
+    "numReviews": 3
+  },
+  {
+    "name": "American Eagle Dress",
+    "slug": "american-eagle-dress-2",
+    "description": "This American Eagle mini dress features a soft chambray-blue tone that brings a relaxed yet polished feel to everyday styling. Designed with a structured square neckline and voluminous puff sleeves, it creates a flattering silhouette that balances femininity with modern ease. The fitted bodice flows into a gently flared skirt, while the smocked back and subtle cut-out detail add both comfort and a touch of interest. Lightweight and breathable, it’s an effortless choice for warm-weather days, whether styled casually or dressed up for a refined, laid-back look.",
+    "price": 4800,
+    "salePrice": null,
+    "images": [
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/9-11.png?v=1777703674",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/9-21.png?v=1777703671",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/9-61.png?v=1777703675",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/9-31.png?v=1777703672",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/9-41.png?v=1777703672",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/9-51.png?v=1777703672"
+    ],
+    "category": "Women",
+    "subcategory": "Dresses & Evening Gowns",
+    "sizes": [
+      "6",
+      "8",
+      "10",
+      "12",
+      "14"
+    ],
+    "stock": 12,
+    "brand": "ENNIGMA PARIS",
+    "isFeatured": true,
+    "isNewArrival": true,
+    "collectionName": "The Calm Edit",
+    "rating": 4.8,
+    "numReviews": 3
+  },
+  {
+    "name": "Mango Dress",
+    "slug": "mango-dress",
+    "description": "This Mango mini dress features a timeless black base adorned with delicate floral detailing, creating a refined yet effortless look. Designed with long, softly flared sleeves and a subtle V-neckline, it offers a flattering silhouette that flows naturally with movement. The tiered ruffle hem adds a playful, feminine touch, while the lightweight fabric keeps it breathable and comfortable, making it perfect for warm, coastal settings or relaxed day-to-night styling.",
+    "price": 4200,
+    "salePrice": null,
+    "images": [
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/1-11.png?v=1777703272",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/1-21.png?v=1777703272",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/1-31.png?v=1777703269",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/1-41.png?v=1777703269",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/1-51.png?v=1777703269",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/1-61.png?v=1777703271"
+    ],
+    "category": "Women",
+    "subcategory": "Dresses & Evening Gowns",
+    "sizes": [
+      "10",
+      "12"
+    ],
+    "stock": 12,
+    "brand": "ENNIGMA PARIS",
+    "isFeatured": true,
+    "isNewArrival": true,
+    "collectionName": "The Calm Edit",
+    "rating": 4.8,
+    "numReviews": 3
+  },
+  {
+    "name": "AMERICAN EAGLE Lace Trim Smocked Crop Top",
+    "slug": "american-eagle-lace-trim-smocked-crop-top",
+    "description": "This American Eagle cropped top features a soft, airy silhouette in a light pastel blue, crafted from a breathable, lightly textured fabric that feels effortless and comfortable. Designed with delicate lace-trimmed straps and neckline, subtle front button detailing, and a gentle tie accent at the bust, it adds a touch of feminine charm while keeping a relaxed, summery vibe. The smocked waistband creates a flattering fit that sits perfectly at the waist, making it ideal for pairing with flowy skirts or casual bottoms for an easy, coastal-inspired look.",
+    "price": 2780,
+    "salePrice": null,
+    "images": [
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/6-31_6163104c-3778-4f16-9e4f-433c935aa1e8.png?v=1777703123",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/6-22_7a63673f-ac81-4136-97fc-03de32094686.png?v=1777703123",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/6-71_49566a29-0c3f-4be0-bbc8-b15b5241f674.png?v=1777703123"
+    ],
+    "category": "Women",
+    "subcategory": "Blouses & Tops",
+    "sizes": [
+      "6",
+      "14"
+    ],
+    "stock": 12,
+    "brand": "ENNIGMA PARIS",
+    "isFeatured": true,
+    "isNewArrival": true,
+    "collectionName": "The Calm Edit",
+    "rating": 4.8,
+    "numReviews": 3
+  },
+  {
+    "name": "AMERICAN EAGLE Flowy Midi Skirt",
+    "slug": "american-eagle-flowy-midi-skirt",
+    "description": "This American Eagle flowy midi skirt features a soft pastel blue tone and a lightweight, breathable fabric that moves effortlessly with every step. Designed with a relaxed silhouette, subtle textured detailing, and an asymmetrical tiered hem, it creates a naturally elegant and airy look. The elastic waistband with an adjustable drawstring ensures a comfortable fit, making it perfect for warm days, beach outings, or casual styling while maintaining a refined, feminine feel.",
+    "price": 4290,
+    "salePrice": null,
+    "images": [
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/6-11.png?v=1777702733",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/6-21.png?v=1777702733",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/6-51.png?v=1777702733"
+    ],
+    "category": "Women",
+    "subcategory": "Tailored Trousers",
+    "sizes": [
+      "8",
+      "10",
+      "14"
+    ],
+    "stock": 12,
+    "brand": "ENNIGMA PARIS",
+    "isFeatured": true,
+    "isNewArrival": true,
+    "collectionName": "The Calm Edit",
+    "rating": 4.8,
+    "numReviews": 3
+  },
+  {
+    "name": "ZARA Two Piece Set",
+    "slug": "zara-two-piece-set",
+    "description": "Bold, fresh, and effortlessly put together, this ZARA two-piece set brings a vibrant statement to everyday dressing. Featuring a cropped button-up shirt with a relaxed fit and matching high-waisted wide-leg trousers, the set is designed for both comfort and style. The standout red base is elevated with a delicate white floral print, giving it a soft, summery feel while still making an impact. The structured collar and short sleeves keep the look polished, while the fluid trousers with a subtle flare add movement and ease. Perfect as a coordinated look or styled separately, this set transitions seamlessly from daytime outings to relaxed evenings, making it a versatile addition to any wardrobe.",
+    "price": 6520,
+    "salePrice": null,
+    "images": [
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/15-11.png?v=1777702046",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/15-21.png?v=1777702046",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/15-51.png?v=1777702046",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/15-31.png?v=1777702046",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/15-41.png?v=1777702046",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/15-61.png?v=1777702046"
+    ],
+    "category": "Women",
+    "subcategory": "Dresses & Evening Gowns",
+    "sizes": [
+      "8",
+      "10",
+      "12",
+      "14"
+    ],
+    "stock": 12,
+    "brand": "ENNIGMA PARIS",
+    "isFeatured": true,
+    "isNewArrival": true,
+    "collectionName": "The Calm Edit",
+    "rating": 4.8,
+    "numReviews": 3
+  },
+  {
+    "name": "ZARA White Mini Dress",
+    "slug": "zara-white-mini-dress",
+    "description": "Light, feminine, and effortlessly summery, this ZARA mini dress is designed for sun-soaked days and relaxed coastal moments. Featuring delicate spaghetti straps and a softly ruched bodice, it creates a flattering, sculpted fit while maintaining a breezy feel. The flared skirt adds movement and ease, finished with subtle eyelet detailing along the hem for a soft, romantic touch. Clean, minimal, and timeless, it’s a staple piece that works seamlessly from beachside styling to casual outings.",
+    "price": 3980,
+    "salePrice": null,
+    "images": [
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/3-11.png?v=1777700371",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/3-21.png?v=1777700370",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/3-5_11.png?v=1777700370",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/3-31.png?v=1777700370",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/3-41.png?v=1777700370",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/3-6_21.png?v=1777700370"
+    ],
+    "category": "Women",
+    "subcategory": "Dresses & Evening Gowns",
+    "sizes": [
+      "10",
+      "14",
+      "16"
+    ],
+    "stock": 12,
+    "brand": "ENNIGMA PARIS",
+    "isFeatured": true,
+    "isNewArrival": true,
+    "collectionName": "The Calm Edit",
+    "rating": 4.8,
+    "numReviews": 3
+  },
+  {
+    "name": "Zoey and Leelo (Floral Smocked Dress)",
+    "slug": "zoey-and-leelo-floral-smocked-dress",
+    "description": "A refined take on everyday elegance, this Zoey and Leelo dress blends structure with softness through its beautifully smocked bodice and flowing silhouette. The monochrome floral print adds a bold yet timeless contrast, making it easy to dress up or down. Featuring gently puffed sleeves and a midi-length skirt, it creates a flattering shape while maintaining comfort and ease of movement. Designed for versatility, this piece transitions effortlessly from daytime outings to more elevated settings.",
+    "price": 5980,
+    "salePrice": null,
+    "images": [
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/16-11.png?v=1777699375",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/16-21.png?v=1777699375",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/16-61.png?v=1777699375",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/16-31.png?v=1777699375",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/16-41.png?v=1777699375",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/16-51.png?v=1777699375"
+    ],
+    "category": "Women",
+    "subcategory": "Dresses & Evening Gowns",
+    "sizes": [
+      "8",
+      "10",
+      "12",
+      "14"
+    ],
+    "stock": 12,
+    "brand": "ENNIGMA PARIS",
+    "isFeatured": true,
+    "isNewArrival": true,
+    "collectionName": "The Calm Edit",
+    "rating": 4.8,
+    "numReviews": 3
+  },
+  {
+    "name": "Time and True (Smoking Dress)",
+    "slug": "time-and-true-smoking-dress",
+    "description": "Soft, romantic, and effortlessly wearable, this Time and True smoking dress features a beautifully smocked bodice that shapes the waist while keeping a comfortable, flexible fit. Designed in a light neutral tone, it brings a clean, understated elegance that works across seasons. The puff sleeves and softly gathered neckline add a delicate, feminine touch, while the midi-length skirt with a subtle ruffle hem creates gentle movement. Easy to style and endlessly versatile, this piece is perfect for everyday wear, casual outings, or dressed-up moments with minimal effort.",
+    "price": 4780,
+    "salePrice": null,
+    "images": [
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/7-11.png?v=1777697849",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/7-21.png?v=1777697849",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/7-61.png?v=1777697848",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/7-31.png?v=1777697848",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/7-41.png?v=1777697848",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/7-51.png?v=1777697848"
+    ],
+    "category": "Women",
+    "subcategory": "Dresses & Evening Gowns",
+    "sizes": [
+      "4",
+      "6",
+      "8",
+      "10",
+      "14"
+    ],
+    "stock": 12,
+    "brand": "ENNIGMA PARIS",
+    "isFeatured": true,
+    "isNewArrival": true,
+    "collectionName": "The Calm Edit",
+    "rating": 4.8,
+    "numReviews": 3
+  },
+  {
+    "name": "ASOS Design Smoking Dress",
+    "slug": "asos-design-smoking-dress",
+    "description": "Modern, structured, and effortlessly refined, this ASOS Design smoking dress features a fully smocked bodice that contours the body for a flattering, sculpted fit while maintaining comfort and flexibility. Designed in a deep wine-brown tone, it brings a richer, more elevated take on everyday dressing. The cap sleeve silhouette and high neckline add a clean, contemporary edge, balanced by a flowing midi-length skirt that creates soft movement and contrast. Finished with a subtle back keyhole detail, this piece transitions seamlessly from daytime wear to evening styling with ease.",
+    "price": 5200,
+    "salePrice": null,
+    "images": [
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/12-11.png?v=1777697201",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/12-41.png?v=1777697201",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/12-51.png?v=1777697201",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/12-31.png?v=1777697201",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/12-21.png?v=1777697201",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/12-61.png?v=1777697202"
+    ],
+    "category": "Women",
+    "subcategory": "Dresses & Evening Gowns",
+    "sizes": [
+      "4",
+      "18"
+    ],
+    "stock": 12,
+    "brand": "ENNIGMA PARIS",
+    "isFeatured": true,
+    "isNewArrival": true,
+    "collectionName": "The Calm Edit",
+    "rating": 4.8,
+    "numReviews": 3
+  },
+  {
+    "name": "Primark Smoking Dress",
+    "slug": "primark-smoking-dress",
+    "description": "Effortless and feminine, this Primark smoking dress features a beautifully gathered smocked bodice that creates a flattering, flexible silhouette while offering all-day comfort. Designed in a rich chocolate brown tone, it brings a warm, earthy elegance that transitions seamlessly from day to evening. The midi-length flowy skirt adds soft movement, while slim adjustable straps and a subtle ruffled neckline complete the look with a delicate touch. Easy to style and endlessly versatile, this piece pairs perfectly with sandals for a relaxed daytime outfit or heels for a more elevated finish.",
+    "price": 4980,
+    "salePrice": null,
+    "images": [
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/11-11.png?v=1777696161",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/11-21.png?v=1777696159",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/11-51.png?v=1777696159",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/11-31.png?v=1777696159",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/11-22.png?v=1777696159",
+      "https://cdn.shopify.com/s/files/1/0663/9176/9282/files/11-61.png?v=1777696159"
+    ],
+    "category": "Women",
+    "subcategory": "Dresses & Evening Gowns",
+    "sizes": [
+      "6",
+      "12",
+      "18"
+    ],
+    "stock": 12,
+    "brand": "ENNIGMA PARIS",
+    "isFeatured": true,
+    "isNewArrival": true,
+    "collectionName": "The Calm Edit",
+    "rating": 4.8,
+    "numReviews": 3
+  }
+]
