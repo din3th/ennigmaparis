@@ -81,6 +81,10 @@ app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/admin', adminRoutes);
 
+app.get('/', (req, res) => {
+  res.status(200).json({ status: 'ok', message: 'ENNIGMA Paris Backend API Service is live and operational' });
+});
+
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'ENNIGMA API is running' });
 });
