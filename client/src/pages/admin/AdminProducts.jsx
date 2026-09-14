@@ -15,7 +15,8 @@ const AdminProducts = () => {
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [description, setDescription] = useState('');
-  const [image, setImage] = useState('');
+  const [images, setImages] = useState([]);
+  const [imageUrlInput, setImageUrlInput] = useState('');
   const [category, setCategory] = useState('Women');
   const [subcategory, setSubcategory] = useState('Dresses & Evening Gowns');
   const [sizes, setSizes] = useState('UK 6, UK 8, UK 10, UK 12');
@@ -88,28 +89,47 @@ const AdminProducts = () => {
   };
 
   const uploadFileHandler = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
     const formData = new FormData();
-    formData.append('image', file);
+    for (let i = 0; i < files.length; i++) {
+      formData.append('images', files[i]);
+    }
+
     setUploading(true);
 
     try {
       const config = { headers: { 'Content-Type': 'multipart/form-data' } };
       const { data } = await axios.post(`${API_BASE_URL}/upload`, formData, config);
-      setImage(data.image);
+      const newUploaded = data.images || [data.image];
+      setImages((prev) => [...prev, ...newUploaded]);
       setUploading(false);
     } catch (error) {
       console.error(error);
       setUploading(false);
-      alert('Failed to upload image');
+      alert('Failed to upload image(s)');
     }
+  };
+
+  const handleAddImageUrl = (e) => {
+    e.preventDefault();
+    if (!imageUrlInput) return;
+    setImages((prev) => [...prev, imageUrlInput]);
+    setImageUrlInput('');
+  };
+
+  const handleRemoveImage = (indexToRemove) => {
+    setImages((prev) => prev.filter((_, idx) => idx !== indexToRemove));
   };
 
   const handleAddProduct = async (e) => {
     e.preventDefault();
     try {
+      const finalImages = images.length > 0 
+        ? images 
+        : ['https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=800'];
+
       await axios.post(
         `${API_BASE_URL}/products`,
         {
@@ -117,7 +137,7 @@ const AdminProducts = () => {
           slug: name.toLowerCase().replace(/ /g, '-'),
           price: Number(price),
           description,
-          images: [image || 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=800'],
+          images: finalImages,
           category,
           subcategory,
           sizes: sizes.split(',').map((s) => s.trim()),
@@ -130,10 +150,10 @@ const AdminProducts = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      setName(''); setPrice(''); setDescription(''); setImage(''); setCategory('Women'); setSubcategory('Dresses & Evening Gowns'); setStock(15);
+      setName(''); setPrice(''); setDescription(''); setImages([]); setCategory('Women'); setSubcategory('Dresses & Evening Gowns'); setStock(15);
       setIsAddingOpen(false);
       fetchProducts();
-      alert('Product created successfully!');
+      alert('Product created successfully with multiple images!');
     } catch (error) {
       console.error('Failed to add product:', error);
       alert(error.response?.data?.message || 'Failed to add product');
@@ -166,7 +186,7 @@ const AdminProducts = () => {
       {isAddingOpen && (
         <div className="bg-white border border-gray-200 p-6 rounded-sm shadow-md mb-8">
           <h2 className="text-xs font-bold tracking-widest uppercase text-gray-900 mb-6 pb-2 border-b border-gray-100">
-            Create Catalog Piece
+            Create Catalog Piece (Multiple Images Supported)
           </h2>
           <form onSubmit={handleAddProduct} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -244,11 +264,70 @@ const AdminProducts = () => {
                 required 
               />
             </div>
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-medium text-gray-700 mb-1">Product Image</label>
-              <input type="file" className="w-full border border-gray-200 p-2 text-xs" onChange={uploadFileHandler} />
-              {uploading && <p className="text-[11px] text-gray-400 mt-1">Uploading image...</p>}
+
+            {/* Multiple Product Images Upload */}
+            <div className="sm:col-span-2 space-y-2">
+              <label className="block text-xs font-medium text-gray-700">Product Gallery Images (Select Multiple Files)</label>
+              <div className="flex gap-2">
+                <input 
+                  type="file" 
+                  multiple 
+                  accept="image/*" 
+                  className="w-full border border-gray-200 p-2 text-xs" 
+                  onChange={uploadFileHandler} 
+                />
+              </div>
+
+              {/* Add image URL manually */}
+              <div className="flex gap-2 pt-1">
+                <input
+                  type="url"
+                  placeholder="Or paste image URL (http://...)"
+                  value={imageUrlInput}
+                  onChange={(e) => setImageUrlInput(e.target.value)}
+                  className="flex-1 border border-gray-200 p-2 text-xs focus:border-black focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddImageUrl}
+                  className="bg-gray-800 text-white px-3 py-2 text-xs uppercase font-bold tracking-wider"
+                >
+                  Add URL
+                </button>
+              </div>
+
+              {uploading && <p className="text-[11px] text-gray-400">Uploading image files...</p>}
+
+              {/* Gallery Image Previews */}
+              {images.length > 0 && (
+                <div className="pt-2">
+                  <span className="block text-[11px] font-bold uppercase tracking-wider text-gray-500 mb-2">
+                    {images.length} Image(s) Attached (First image is main thumbnail):
+                  </span>
+                  <div className="flex flex-wrap gap-3">
+                    {images.map((img, idx) => (
+                      <div key={idx} className="relative group w-16 h-20 bg-gray-100 border border-gray-200 rounded-sm overflow-hidden">
+                        <img src={img} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImage(idx)}
+                          className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold shadow-md hover:bg-red-700"
+                          title="Remove image"
+                        >
+                          ×
+                        </button>
+                        {idx === 0 && (
+                          <span className="absolute bottom-0 inset-x-0 bg-black/75 text-white text-[8px] text-center font-bold uppercase py-0.5">
+                            Main
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
+
             <div className="sm:col-span-2">
               <label className="block text-xs font-medium text-gray-700 mb-1">Description *</label>
               <textarea 
@@ -263,13 +342,14 @@ const AdminProducts = () => {
             <button 
               type="submit" 
               disabled={uploading} 
-              className="sm:col-span-2 bg-black text-white py-3 text-xs font-bold uppercase tracking-widest hover:bg-gray-800 disabled:opacity-50"
+              className="sm:col-span-2 bg-black text-white py-3 text-xs font-bold uppercase tracking-widest hover:bg-gray-800 disabled:opacity-50 cursor-pointer"
             >
-              Publish Product to Storefront
+              Publish Product with {images.length || 1} Image(s)
             </button>
           </form>
         </div>
       )}
+
 
       {/* Product Search & Filter Bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6 bg-white p-4 border border-gray-100 rounded-sm shadow-sm">
