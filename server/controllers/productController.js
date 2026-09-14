@@ -200,7 +200,6 @@ export const createProduct = async (req, res) => {
     const slug = req.body.slug || req.body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
     
     const newProdData = {
-      _id: `prod_${Date.now()}`,
       name: req.body.name,
       slug,
       description: req.body.description,
@@ -220,19 +219,24 @@ export const createProduct = async (req, res) => {
       createdAt: new Date(),
     };
 
-    // Store in inMemoryStore immediately
-    const store = getFallbackProducts();
-    store.unshift(newProdData);
-
     if (mongoose.connection.readyState === 1) {
       try {
         const product = new Product(newProdData);
         const createdProduct = await product.save();
+        
+        // Sync in-memory store
+        const store = getFallbackProducts();
+        store.unshift(createdProduct.toObject ? createdProduct.toObject() : createdProduct);
+
         return res.status(201).json(createdProduct);
       } catch (dbErr) {
         console.warn('DB create product warning (saved in memory):', dbErr.message);
       }
     }
+
+    newProdData._id = `prod_${Date.now()}`;
+    const store = getFallbackProducts();
+    store.unshift(newProdData);
 
     res.status(201).json(newProdData);
   } catch (error) {
@@ -240,6 +244,7 @@ export const createProduct = async (req, res) => {
     res.status(500).json({ message: 'Server error while creating product' });
   }
 };
+
 
 
 // @desc    Update a product
