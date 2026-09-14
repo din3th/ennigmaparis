@@ -36,9 +36,26 @@ app.use('/api/users/login', authLimiter);
 app.use('/api/users/register', authLimiter);
 app.use('/api/payments', authLimiter);
 
-// Middleware
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  process.env.CLIENT_URL,
+  'http://localhost:5174',
+  'http://localhost:5173',
+  'http://localhost:3000'
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5174',
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    if (
+      allowedOrigins.includes(origin) ||
+      origin.endsWith('.vercel.app') ||
+      origin.includes('vercel.app')
+    ) {
+      return callback(null, true);
+    }
+    callback(null, true);
+  },
   credentials: true
 }));
 app.use(express.json());
