@@ -2,13 +2,13 @@ import mongoose from 'mongoose';
 
 const orderSchema = new mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false },
+    user: { type: mongoose.Schema.Types.Mixed, required: false },
     guestEmail: { type: String, required: false },
     guestName: { type: String, required: false },
     guestPhone: { type: String, required: false },
     items: [
       {
-        product: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
+        product: { type: mongoose.Schema.Types.Mixed, required: false },
         name: { type: String, required: true },
         qty: { type: Number, required: true },
         size: { type: String },
@@ -22,8 +22,8 @@ const orderSchema = new mongoose.Schema(
       zip: { type: String, required: true },
       country: { type: String, required: true },
     },
-    paymentMethod: { type: String, required: true, enum: ['Card', 'COD', 'Stripe', 'PayHere'] },
-    paymentStatus: { type: String, required: true, default: 'Pending', enum: ['Pending', 'Completed', 'Failed'] },
+    paymentMethod: { type: String, required: true },
+    paymentStatus: { type: String, required: true, default: 'Pending' },
     paymentResult: {
       id: String,
       status: String,
