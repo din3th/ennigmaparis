@@ -1,6 +1,48 @@
+import fs from 'fs';
+import path from 'path';
+import mongoose from 'mongoose';
 import Product from '../models/Product.js';
 import Category from '../models/Category.js';
 import BackInStock from '../models/BackInStock.js';
+
+const getFallbackProducts = () => {
+  try {
+    const calmEditPath = path.join(process.cwd(), 'data/calm_edit_products.json');
+    if (fs.existsSync(calmEditPath)) {
+      const data = fs.readFileSync(calmEditPath, 'utf8');
+      return JSON.parse(data).map((p, idx) => ({
+        _id: p._id || `fallback_${idx}`,
+        ...p
+      }));
+    }
+    const clientPath = path.join(process.cwd(), '../client/src/data/products.json');
+    if (fs.existsSync(clientPath)) {
+      const data = fs.readFileSync(clientPath, 'utf8');
+      const items = JSON.parse(data);
+      return items.map((p, idx) => ({
+        _id: `fallback_${idx}`,
+        name: p.title,
+        slug: p.handle,
+        description: p.description || 'Designed in Paris.',
+        images: p.images,
+        price: parseFloat(p.price) || 4500,
+        category: 'Women',
+        subcategory: 'Dresses & Evening Gowns',
+        sizes: p.sizes || ['8', '10', '12'],
+        stock: 10,
+        brand: 'ENNIGMA PARIS',
+        isFeatured: true,
+        isNewArrival: true,
+        collectionName: 'The Calm Edit',
+        rating: 4.8,
+        numReviews: 4,
+      }));
+    }
+  } catch (e) {
+    console.error('Fallback read error:', e);
+  }
+  return [];
+};
 
 // @desc    Fetch all products with filtering & search
 // @route   GET /api/products
@@ -12,10 +54,17 @@ export const getProducts = async (req, res) => {
     let query = {};
 
     if (category) {
-      query.category = { $regex: new RegExp(`^${category}$`, 'i') };
+      query.category = { $regex: new RegExp(category, 'i') };
     }
     if (subcategory) {
-      query.subcategory = { $regex: new RegExp(`^${subcategory}$`, 'i') };
+      // Escape regex special chars if necessary and match loosely
+      const cleanSub = subcategory.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      query.$or = [
+        { subcategory: { $regex: new RegExp(cleanSub, 'i') } },
+        { category: { $regex: new RegExp(cleanSub, 'i') } },
+        { collectionName: { $regex: new RegExp(cleanSub, 'i') } },
+        { name: { $regex: new RegExp(cleanSub, 'i') } },
+      ];
     }
     if (featured === 'true') {
       query.isFeatured = true;
@@ -49,7 +98,51 @@ export const getProducts = async (req, res) => {
     if (sort === 'rating') sortOptions = { rating: -1 };
     if (sort === 'popular') sortOptions = { numReviews: -1 };
 
-    const products = await Product.find(query).sort(sortOptions);
+    let products = [];
+    if (mongoose.connection.readyState === 1) {
+      try {
+        products = await Product.find(query).sort(sortOptions);
+      } catch (dbErr) {
+        console.warn('MongoDB query warning (using fallback dataset):', dbErr.message);
+      }
+    }
+
+
+    if (!products || products.length === 0) {
+      let fallback = getFallbackProducts();
+
+      if (category) {
+        fallback = fallback.filter(p => p.category?.toLowerCase().includes(category.toLowerCase()));
+      }
+      if (subcategory) {
+        const subClean = subcategory.toLowerCase();
+        fallback = fallback.filter(p => 
+          p.subcategory?.toLowerCase().includes(subClean) ||
+          p.category?.toLowerCase().includes(subClean) ||
+          subClean.includes((p.subcategory || '').toLowerCase()) ||
+          p.collectionName?.toLowerCase().includes(subClean) ||
+          p.name?.toLowerCase().includes(subClean)
+        );
+      }
+      if (search) {
+        const s = search.toLowerCase();
+        fallback = fallback.filter(p =>
+          p.name?.toLowerCase().includes(s) ||
+          p.description?.toLowerCase().includes(s) ||
+          p.category?.toLowerCase().includes(s)
+        );
+      }
+      if (minPrice) fallback = fallback.filter(p => p.price >= Number(minPrice));
+      if (maxPrice) fallback = fallback.filter(p => p.price <= Number(maxPrice));
+      if (inStock === 'true') fallback = fallback.filter(p => (p.stock || 0) > 0);
+
+      if (sort === 'price-low') fallback.sort((a, b) => a.price - b.price);
+      else if (sort === 'price-high') fallback.sort((a, b) => b.price - a.price);
+      else if (sort === 'rating') fallback.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+
+      products = fallback;
+    }
+
     res.json(products);
   } catch (error) {
     console.error('Error fetching products:', error);
@@ -62,10 +155,22 @@ export const getProducts = async (req, res) => {
 // @access  Public
 export const getProductBySlug = async (req, res) => {
   try {
-    const isObjectId = req.params.slug.match(/^[0-9a-fA-F]{24}$/);
-    const product = isObjectId 
-      ? await Product.findById(req.params.slug)
-      : await Product.findOne({ slug: req.params.slug });
+    let product = null;
+    try {
+      const isObjectId = req.params.slug.match(/^[0-9a-fA-F]{24}$/);
+      product = isObjectId 
+        ? await Product.findById(req.params.slug)
+        : await Product.findOne({ slug: req.params.slug });
+    } catch (dbErr) {
+      console.warn('DB lookup warning:', dbErr.message);
+    }
+
+    if (!product) {
+      const fallbackList = getFallbackProducts();
+      product = fallbackList.find(
+        (p) => p.slug === req.params.slug || p._id === req.params.slug
+      );
+    }
 
     if (product) {
       res.json(product);
@@ -76,6 +181,7 @@ export const getProductBySlug = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
+
 
 // @desc    Create a product
 // @route   POST /api/products

@@ -68,17 +68,21 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'ENNIGMA API is running' });
 });
 
-// Database Connection
+// Database Connection & Server Listener
 const PORT = process.env.PORT || 3001;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/ennigma';
 
-mongoose.connect(MONGODB_URI)
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
+mongoose.connect(MONGODB_URI, {
+  serverSelectionTimeoutMS: 3000,
+})
   .then(() => {
-    console.log('Connected to MongoDB');
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
+    console.log('Connected to MongoDB Atlas');
   })
   .catch((error) => {
-    console.error('MongoDB connection error:', error);
+    console.warn('MongoDB connection warning (running with resilient local catalog fallback):', error.message);
   });
+
