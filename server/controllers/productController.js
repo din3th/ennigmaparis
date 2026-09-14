@@ -5,21 +5,26 @@ import Product from '../models/Product.js';
 import Category from '../models/Category.js';
 import BackInStock from '../models/BackInStock.js';
 
+let inMemoryStore = null;
+
 const getFallbackProducts = () => {
+  if (inMemoryStore) return inMemoryStore;
+
   try {
     const calmEditPath = path.join(process.cwd(), 'data/calm_edit_products.json');
     if (fs.existsSync(calmEditPath)) {
       const data = fs.readFileSync(calmEditPath, 'utf8');
-      return JSON.parse(data).map((p, idx) => ({
+      inMemoryStore = JSON.parse(data).map((p, idx) => ({
         _id: p._id || `fallback_${idx}`,
         ...p
       }));
+      return inMemoryStore;
     }
     const clientPath = path.join(process.cwd(), '../client/src/data/products.json');
     if (fs.existsSync(clientPath)) {
       const data = fs.readFileSync(clientPath, 'utf8');
       const items = JSON.parse(data);
-      return items.map((p, idx) => ({
+      inMemoryStore = items.map((p, idx) => ({
         _id: `fallback_${idx}`,
         name: p.title,
         slug: p.handle,
@@ -37,11 +42,13 @@ const getFallbackProducts = () => {
         rating: 4.8,
         numReviews: 4,
       }));
+      return inMemoryStore;
     }
   } catch (e) {
     console.error('Fallback read error:', e);
   }
-  return [];
+  inMemoryStore = [];
+  return inMemoryStore;
 };
 
 // @desc    Fetch all products with filtering & search
@@ -109,7 +116,7 @@ export const getProducts = async (req, res) => {
 
 
     if (!products || products.length === 0) {
-      let fallback = getFallbackProducts();
+      let fallback = [...getFallbackProducts()];
 
       if (category) {
         fallback = fallback.filter(p => p.category?.toLowerCase().includes(category.toLowerCase()));
@@ -156,13 +163,15 @@ export const getProducts = async (req, res) => {
 export const getProductBySlug = async (req, res) => {
   try {
     let product = null;
-    try {
-      const isObjectId = req.params.slug.match(/^[0-9a-fA-F]{24}$/);
-      product = isObjectId 
-        ? await Product.findById(req.params.slug)
-        : await Product.findOne({ slug: req.params.slug });
-    } catch (dbErr) {
-      console.warn('DB lookup warning:', dbErr.message);
+    if (mongoose.connection.readyState === 1) {
+      try {
+        const isObjectId = req.params.slug.match(/^[0-9a-fA-F]{24}$/);
+        product = isObjectId 
+          ? await Product.findById(req.params.slug)
+          : await Product.findOne({ slug: req.params.slug });
+      } catch (dbErr) {
+        console.warn('DB lookup warning:', dbErr.message);
+      }
     }
 
     if (!product) {
@@ -197,18 +206,23 @@ export const createProduct = async (req, res) => {
       description: req.body.description,
       price: req.body.price,
       salePrice: req.body.salePrice || null,
-      images: req.body.images || [],
-      category: req.body.category,
-      subcategory: req.body.subcategory,
+      images: req.body.images && req.body.images.length > 0 ? req.body.images : ['https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=800'],
+      category: req.body.category || 'Women',
+      subcategory: req.body.subcategory || 'Dresses & Evening Gowns',
       sizes: req.body.sizes || [],
       colors: req.body.colors || [],
       variants: req.body.variants || [],
-      stock: req.body.stock || 0,
+      stock: req.body.stock !== undefined ? req.body.stock : 10,
       brand: req.body.brand || 'ENNIGMA PARIS',
-      isFeatured: req.body.isFeatured || false,
-      isNewArrival: req.body.isNewArrival || false,
+      isFeatured: true,
+      isNewArrival: true,
       collectionName: req.body.collectionName || 'The Calm Edit',
+      createdAt: new Date(),
     };
+
+    // Store in inMemoryStore immediately
+    const store = getFallbackProducts();
+    store.unshift(newProdData);
 
     if (mongoose.connection.readyState === 1) {
       try {
@@ -216,7 +230,7 @@ export const createProduct = async (req, res) => {
         const createdProduct = await product.save();
         return res.status(201).json(createdProduct);
       } catch (dbErr) {
-        console.warn('DB create product warning (using fallback creation):', dbErr.message);
+        console.warn('DB create product warning (saved in memory):', dbErr.message);
       }
     }
 
@@ -233,37 +247,32 @@ export const createProduct = async (req, res) => {
 // @access  Private/Admin
 export const updateProduct = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
-    if (!product) {
-      return res.status(404).json({ message: 'Product not found' });
+    let updatedProduct = null;
+
+    if (mongoose.connection.readyState === 1) {
+      try {
+        const product = await Product.findById(req.params.id);
+        if (product) {
+          product.name = req.body.name || product.name;
+          product.price = req.body.price !== undefined ? req.body.price : product.price;
+          product.stock = req.body.stock !== undefined ? req.body.stock : product.stock;
+          updatedProduct = await product.save();
+        }
+      } catch (dbErr) {}
     }
 
-    const previousStock = product.stock;
+    // Always update inMemoryStore
+    const store = getFallbackProducts();
+    const memItem = store.find((p) => p._id === req.params.id);
+    if (memItem) {
+      if (req.body.name) memItem.name = req.body.name;
+      if (req.body.price !== undefined) memItem.price = req.body.price;
+      if (req.body.stock !== undefined) memItem.stock = req.body.stock;
+      if (!updatedProduct) updatedProduct = memItem;
+    }
 
-    product.name = req.body.name || product.name;
-    product.price = req.body.price !== undefined ? req.body.price : product.price;
-    product.salePrice = req.body.salePrice !== undefined ? req.body.salePrice : product.salePrice;
-    product.description = req.body.description || product.description;
-    product.category = req.body.category || product.category;
-    product.subcategory = req.body.subcategory || product.subcategory;
-    product.stock = req.body.stock !== undefined ? req.body.stock : product.stock;
-    product.images = req.body.images || product.images;
-    product.isFeatured = req.body.isFeatured !== undefined ? req.body.isFeatured : product.isFeatured;
-    product.isNewArrival = req.body.isNewArrival !== undefined ? req.body.isNewArrival : product.isNewArrival;
-
-    const updatedProduct = await product.save();
-
-    // Trigger back in stock notifications if stock went from 0 to > 0
-    if (previousStock <= 0 && updatedProduct.stock > 0) {
-      const pendingRequests = await BackInStock.find({ product: updatedProduct._id, notified: false });
-      if (pendingRequests.length > 0) {
-        const { sendBackInStockEmail } = await import('../utils/emailService.js');
-        for (const reqObj of pendingRequests) {
-          await sendBackInStockEmail(reqObj.email, updatedProduct);
-          reqObj.notified = true;
-          await reqObj.save();
-        }
-      }
+    if (!updatedProduct) {
+      return res.status(404).json({ message: 'Product not found' });
     }
 
     res.json(updatedProduct);
@@ -277,11 +286,14 @@ export const updateProduct = async (req, res) => {
 // @access  Private/Admin
 export const deleteProduct = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
-    if (!product) {
-      return res.status(404).json({ message: 'Product not found' });
+    if (mongoose.connection.readyState === 1) {
+      try {
+        const product = await Product.findById(req.params.id);
+        if (product) await product.deleteOne();
+      } catch (dbErr) {}
     }
-    await product.deleteOne();
+
+    inMemoryStore = getFallbackProducts().filter((p) => p._id !== req.params.id);
     res.json({ message: 'Product removed' });
   } catch (error) {
     res.status(500).json({ message: 'Error deleting product' });
