@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Mail, Lock, User, Phone, CheckCircle2, ArrowRight } from 'lucide-react';
 
-const API_BASE_URL = 'http://localhost:3001/api';
+import { API_BASE_URL } from '../config/api';
 
 const Register = () => {
   const [name, setName] = useState('');

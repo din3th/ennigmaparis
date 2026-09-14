@@ -3,8 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import ProductCard from '../components/ProductCard';
-
-const API_BASE_URL = 'http://localhost:3001/api';
+import { API_BASE_URL } from '../config/api';
 
 const Home = () => {
   const [featuredProducts, setFeaturedProducts] = useState([]);

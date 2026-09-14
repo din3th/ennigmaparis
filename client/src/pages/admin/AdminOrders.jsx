@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:3001/api';
+import { API_BASE_URL } from '../../config/api';
 
 const AdminOrders = () => {
   const [orders, setOrders] = useState([]);

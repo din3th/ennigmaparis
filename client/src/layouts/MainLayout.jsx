@@ -5,6 +5,7 @@ import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
+import { API_BASE_URL } from '../config/api';
 
 const MainLayout = () => {
   const { cartItems } = useCart();
@@ -38,7 +39,7 @@ const MainLayout = () => {
     setNewsletterMsg(null);
 
     try {
-      const response = await axios.post('http://localhost:3001/api/admin/newsletter/subscribe', {
+      const response = await axios.post(`${API_BASE_URL}/admin/newsletter/subscribe`, {
         email: newsletterEmail,
       });
       setNewsletterMsg(response.data.message);

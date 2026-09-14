@@ -3,7 +3,7 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
-const API_BASE_URL = 'http://localhost:3001/api';
+import { API_BASE_URL } from '../../config/api';
 
 const COLORS = ['#000000', '#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
 

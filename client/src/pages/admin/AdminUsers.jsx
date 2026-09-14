@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Users, Shield, Trash2, Search, UserCheck, AlertCircle, RefreshCw } from 'lucide-react';
 
-const API_BASE_URL = 'http://localhost:3001/api';
+import { API_BASE_URL } from '../../config/api';
 
 const AdminUsers = () => {
   const [users, setUsers] = useState([]);

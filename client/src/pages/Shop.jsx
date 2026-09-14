@@ -5,8 +5,8 @@ import axios from 'axios';
 import ProductCard from '../components/ProductCard';
 import { ProductCardSkeleton } from '../components/Skeleton';
 import { Filter, X, Check } from 'lucide-react';
+import { API_BASE_URL } from '../config/api';
 
-const API_BASE_URL = 'http://localhost:3001/api';
 
 const Shop = () => {
   const [sortOption, setSortOption] = useState('newest');

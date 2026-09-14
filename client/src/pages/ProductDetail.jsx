@@ -3,8 +3,8 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
+import { API_BASE_URL } from '../config/api';
 
-const API_BASE_URL = 'http://localhost:3001/api';
 
 const ProductDetail = () => {
   const { slug } = useParams();
