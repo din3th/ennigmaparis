@@ -70,7 +70,7 @@ app.get('/api/health', (req, res) => {
 
 // Database Connection & Server Listener
 const PORT = process.env.PORT || 3001;
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/ennigma';
+const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/ennigma';
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
