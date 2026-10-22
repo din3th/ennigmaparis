@@ -51,6 +51,7 @@ export const addOrderItems = async (req, res) => {
     guestEmail,
     guestName,
     guestPhone,
+    transferReceipt,
   } = req.body;
 
   if (!orderItems || orderItems.length === 0) {
@@ -79,6 +80,7 @@ export const addOrderItems = async (req, res) => {
         paymentMethod: paymentMethod || 'COD',
         paymentStatus: paymentStatus || 'Pending',
         paymentResult,
+        transferReceipt: transferReceipt || null,
         itemsPrice: itemsPrice || totalPrice || 0,
         shippingPrice: shippingPrice || 0,
         discountCode: discountCode || '',
@@ -106,6 +108,7 @@ export const addOrderItems = async (req, res) => {
     shippingAddress: shippingAddress || { street: '2a De Fonseka Rd', city: 'Colombo', state: 'Western', zip: '00500', country: 'Sri Lanka' },
     paymentMethod: paymentMethod || 'COD',
     paymentStatus: paymentStatus || 'Pending',
+    transferReceipt: transferReceipt || null,
     orderStatus: 'Confirmed',
     itemsPrice: itemsPrice || totalPrice || 0,
     shippingPrice: shippingPrice || 0,
@@ -212,17 +215,25 @@ export const getOrderById = async (req, res) => {
   }
 };
 
-// @desc    Download Order PDF Invoice
+// @desc    Download or View Order PDF Invoice
 // @route   GET /api/orders/:id/invoice
 // @access  Public
 export const downloadOrderInvoice = async (req, res) => {
   try {
     const mongoose = (await import('mongoose')).default;
     let order = null;
+    const isDownload = req.query.download === 'true';
+
     if (mongoose.connection.readyState === 1) {
       try {
-        order = await Order.findById(req.params.id).populate('user', 'name email');
-      } catch (dbErr) {}
+        if (mongoose.isValidObjectId(req.params.id)) {
+          order = await Order.findById(req.params.id).populate('user', 'name email phone');
+        } else {
+          order = await Order.findOne({ _id: req.params.id }).populate('user', 'name email phone');
+        }
+      } catch (dbErr) {
+        console.warn('DB Invoice lookup error:', dbErr.message);
+      }
     }
 
     if (!order) {
@@ -234,7 +245,7 @@ export const downloadOrderInvoice = async (req, res) => {
     }
 
     const { generateInvoicePDF } = await import('../utils/pdfInvoiceGenerator.js');
-    generateInvoicePDF(order, res);
+    generateInvoicePDF(order, res, isDownload);
   } catch (error) {
     console.error('Invoice error:', error);
     res.status(500).json({ message: 'Failed to generate PDF invoice' });

@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
-import { CheckCircle2, Download, Package, ArrowRight, Truck, ShieldCheck, MapPin } from 'lucide-react';
+import { CheckCircle2, Download, Package, ArrowRight, Truck, ShieldCheck, MapPin, ExternalLink, Printer } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
+import { downloadInvoicePDF, openInvoicePDF } from '../utils/invoiceService';
 
 const OrderSuccess = () => {
   const { id } = useParams();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -29,8 +31,14 @@ const OrderSuccess = () => {
     }
   }, [id]);
 
-  const handleDownloadInvoice = () => {
-    window.open(`${API_BASE_URL}/orders/${id}/invoice`, '_blank');
+  const handleDownload = async () => {
+    setDownloading(true);
+    await downloadInvoicePDF(id);
+    setDownloading(false);
+  };
+
+  const handleView = () => {
+    openInvoicePDF(id);
   };
 
   if (loading) {
@@ -92,14 +100,21 @@ const OrderSuccess = () => {
         {/* Action Buttons Header */}
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <button
-            onClick={handleDownloadInvoice}
+            onClick={handleView}
             className="inline-flex items-center gap-2 bg-black text-white px-6 py-3 text-xs font-bold uppercase tracking-widest hover:bg-gray-800 transition-all shadow-md cursor-pointer"
           >
-            <Download size={14} /> Download Official PDF Invoice
+            <Printer size={14} /> Open &amp; Print Invoice
+          </button>
+          <button
+            onClick={handleDownload}
+            disabled={downloading}
+            className="inline-flex items-center gap-2 border border-black text-black px-6 py-3 text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors cursor-pointer disabled:opacity-50"
+          >
+            <Download size={14} /> {downloading ? 'Downloading...' : 'Download PDF'}
           </button>
           <Link
             to="/orders"
-            className="inline-flex items-center gap-2 border border-black text-black px-6 py-3 text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-colors"
+            className="inline-flex items-center gap-2 bg-gray-100 text-gray-800 px-6 py-3 text-xs font-bold uppercase tracking-widest hover:bg-gray-200 transition-colors"
           >
             View All My Orders
           </Link>
@@ -167,7 +182,7 @@ const OrderSuccess = () => {
             </h3>
           </div>
           <div className="flex justify-between text-xs">
-            <span className="text-gray-500">Payment Gateway:</span>
+            <span className="text-gray-500">Payment Method:</span>
             <span className="font-bold text-gray-900">{order.paymentMethod}</span>
           </div>
           <div className="flex justify-between text-xs items-center">
@@ -177,9 +192,22 @@ const OrderSuccess = () => {
                 ? 'bg-green-100 text-green-800'
                 : 'bg-amber-100 text-amber-800'
             }`}>
-              {order.paymentStatus}
+              {order.paymentStatus === 'Completed' ? 'Verified / Completed' : 'Pending Atelier Verification'}
             </span>
           </div>
+          {order.transferReceipt && (
+            <div className="flex justify-between text-xs items-center pt-1 border-t border-gray-200">
+              <span className="text-gray-500">Confirmation Slip:</span>
+              <a
+                href={order.transferReceipt.url.startsWith('http') || order.transferReceipt.url.startsWith('data:') ? order.transferReceipt.url : `${API_BASE_URL.replace('/api', '')}${order.transferReceipt.url}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-black underline font-semibold text-[11px] hover:text-gray-600 inline-flex items-center gap-1"
+              >
+                View Uploaded Slip ↗
+              </a>
+            </div>
+          )}
           <div className="flex justify-between text-xs">
             <span className="text-gray-500">Order Placed:</span>
             <span className="font-mono text-gray-700">
@@ -196,6 +224,21 @@ const OrderSuccess = () => {
           </div>
         </div>
       </div>
+
+      {/* Bank Transfer Under Review Banner */}
+      {order.paymentMethod === 'Bank Transfer' && order.paymentStatus !== 'Completed' && (
+        <div className="mb-10 bg-amber-50/70 border border-amber-200 p-5 rounded-sm flex items-start gap-3">
+          <ShieldCheck size={20} className="text-amber-700 flex-shrink-0 mt-0.5" />
+          <div className="text-xs text-amber-900">
+            <h4 className="font-bold uppercase tracking-wider text-[11px] text-amber-800 mb-1">
+              Bank Fund Transfer In Verification
+            </h4>
+            <p className="leading-relaxed text-amber-800">
+              Thank you for uploading your fund transfer confirmation slip. Our treasury department is matching the transaction with Commercial Bank of Ceylon records. Your bespoke pieces are reserved and dispatch processing will commence as soon as verification completes.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Itemized Order Table */}
       <div className="py-10">

@@ -69,21 +69,21 @@ const MainLayout = () => {
         className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100"
         onMouseLeave={() => setIsMegaMenuOpen(false)}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16 sm:h-20 relative">
             {/* Mobile Menu Button */}
-            <div className="flex items-center md:hidden">
+            <div className="flex items-center md:hidden z-10">
               <button 
                 onClick={() => setIsMobileMenuOpen(true)}
-                className="text-gray-900 p-2 cursor-pointer hover:text-gray-600 transition-colors"
+                className="text-gray-900 p-1.5 sm:p-2 -ml-1 cursor-pointer hover:text-gray-600 transition-colors"
                 aria-label="Open mobile navigation"
               >
-                <Menu size={24} />
+                <Menu size={22} className="sm:w-6 sm:h-6" />
               </button>
             </div>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex space-x-8 h-full items-center">
+            <nav className="hidden md:flex space-x-6 lg:space-x-8 h-full items-center">
               <div 
                 className="relative h-full flex items-center cursor-pointer"
                 onMouseEnter={() => setIsMegaMenuOpen(true)}
@@ -103,38 +103,41 @@ const MainLayout = () => {
               </Link>
             </nav>
 
-            {/* Logo */}
-            <div className="flex-shrink-0 flex items-center justify-center absolute left-1/2 transform -translate-x-1/2">
-              <Link to="/" className="text-2xl font-serif font-bold tracking-[0.25em] uppercase text-gray-900">
+            {/* Logo - Centered and scaled responsibly across mobile, tablet, and desktop */}
+            <div className="flex-shrink-0 flex items-center justify-center absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-auto max-w-[calc(100vw-130px)] sm:max-w-none">
+              <Link 
+                to="/" 
+                className="text-base sm:text-xl md:text-2xl font-serif font-bold tracking-[0.16em] sm:tracking-[0.22em] md:tracking-[0.25em] uppercase text-gray-900 truncate block select-none"
+              >
                 ENNIGMA
               </Link>
             </div>
 
             {/* Icons */}
-            <div className="flex items-center space-x-2 sm:space-x-3">
+            <div className="flex items-center space-x-0.5 sm:space-x-2 md:space-x-3 z-10">
               {/* Search Toggle Icon */}
               <button
                 onClick={() => setIsSearchOpen(true)}
                 aria-label="Search Catalog"
-                className="text-gray-900 p-2 hover:text-gray-600 transition-colors cursor-pointer"
+                className="text-gray-900 p-1.5 sm:p-2 hover:text-gray-600 transition-colors cursor-pointer"
               >
-                <Search size={20} />
+                <Search size={18} className="sm:w-5 sm:h-5" />
               </button>
 
               {/* Wishlist */}
-              <Link to="/wishlist" aria-label="Wishlist" className="text-gray-900 p-2 hover:text-gray-600 transition-colors relative">
-                <Heart size={20} />
+              <Link to="/wishlist" aria-label="Wishlist" className="text-gray-900 p-1.5 sm:p-2 hover:text-gray-600 transition-colors relative">
+                <Heart size={18} className="sm:w-5 sm:h-5" />
                 {wishlistCount > 0 && (
-                  <span className="absolute top-1 right-1 inline-flex items-center justify-center w-4 h-4 text-[9px] font-bold leading-none text-white bg-red-600 rounded-full">
+                  <span className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 inline-flex items-center justify-center w-3.5 h-3.5 sm:w-4 sm:h-4 text-[8px] sm:text-[9px] font-bold leading-none text-white bg-red-600 rounded-full">
                     {wishlistCount}
                   </span>
                 )}
               </Link>
               
-              {/* User Dropdown */}
-              <div className="relative group">
-                <button className="text-gray-900 p-2 hover:text-gray-600 transition-colors flex items-center gap-1 cursor-pointer">
-                  <User size={20} />
+              {/* User Dropdown - Hidden on small mobile screens to prevent overlap, accessible in mobile drawer */}
+              <div className="relative group hidden sm:block">
+                <button className="text-gray-900 p-1.5 sm:p-2 hover:text-gray-600 transition-colors flex items-center gap-1 cursor-pointer">
+                  <User size={18} className="sm:w-5 sm:h-5" />
                   {currentUser && (
                     <span className="text-[10px] font-bold uppercase tracking-wider hidden lg:inline max-w-[80px] truncate">
                       {currentUser.name.split(' ')[0]}
@@ -190,10 +193,10 @@ const MainLayout = () => {
               </div>
 
               {/* Shopping Bag */}
-              <Link to="/cart" aria-label="Cart" className="text-gray-900 p-2 hover:text-gray-600 transition-colors relative">
-                <ShoppingBag size={20} />
+              <Link to="/cart" aria-label="Cart" className="text-gray-900 p-1.5 sm:p-2 hover:text-gray-600 transition-colors relative">
+                <ShoppingBag size={18} className="sm:w-5 sm:h-5" />
                 {cartCount > 0 && (
-                  <span className="absolute top-1 right-1 inline-flex items-center justify-center w-4 h-4 text-[9px] font-bold leading-none text-white bg-black rounded-full">
+                  <span className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 inline-flex items-center justify-center w-3.5 h-3.5 sm:w-4 sm:h-4 text-[8px] sm:text-[9px] font-bold leading-none text-white bg-black rounded-full">
                     {cartCount}
                   </span>
                 )}

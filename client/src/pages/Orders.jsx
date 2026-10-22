@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Package, Download, Eye, ArrowRight, ShieldCheck, Clock, ExternalLink } from 'lucide-react';
+import { Package, Download, Eye, ArrowRight, ShieldCheck, Clock, ExternalLink, Printer } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
+import { downloadInvoicePDF, openInvoicePDF } from '../utils/invoiceService';
 
 const Orders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [downloadingId, setDownloadingId] = useState(null);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
@@ -38,9 +40,16 @@ const Orders = () => {
     fetchMyOrders();
   }, [token]);
 
-  const handleDownloadInvoice = (orderId, e) => {
-    e.stopPropagation();
-    window.open(`${API_BASE_URL}/orders/${orderId}/invoice`, '_blank');
+  const handleOpenInvoice = (orderId, e) => {
+    if (e) e.stopPropagation();
+    openInvoicePDF(orderId);
+  };
+
+  const handleDownloadInvoice = async (orderId, e) => {
+    if (e) e.stopPropagation();
+    setDownloadingId(orderId);
+    await downloadInvoicePDF(orderId);
+    setDownloadingId(null);
   };
 
   if (!token) {
@@ -176,15 +185,26 @@ const Orders = () => {
                       {orderStatus}
                     </span>
 
-                    {/* PDF Download Button */}
-                    <button
-                      onClick={(e) => handleDownloadInvoice(order._id, e)}
-                      title="Download Official PDF Invoice"
-                      className="inline-flex items-center gap-1.5 border border-gray-300 hover:border-black text-gray-700 hover:text-black px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer rounded-sm"
-                    >
-                      <Download size={13} />
-                      <span className="hidden sm:inline">PDF Invoice</span>
-                    </button>
+                    {/* PDF Open and Download Buttons */}
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={(e) => handleOpenInvoice(order._id, e)}
+                        title="Open and Print Invoice in New Tab"
+                        className="inline-flex items-center gap-1.5 border border-gray-300 hover:border-black text-gray-700 hover:text-black px-2.5 py-1.5 text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer rounded-sm"
+                      >
+                        <Printer size={13} />
+                        <span className="hidden sm:inline">View</span>
+                      </button>
+                      <button
+                        onClick={(e) => handleDownloadInvoice(order._id, e)}
+                        disabled={downloadingId === order._id}
+                        title="Download Invoice PDF File"
+                        className="inline-flex items-center gap-1 border border-gray-300 hover:border-black text-gray-700 hover:text-black px-2.5 py-1.5 text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer rounded-sm disabled:opacity-50"
+                      >
+                        <Download size={13} />
+                        <span className="hidden sm:inline">{downloadingId === order._id ? '...' : 'PDF'}</span>
+                      </button>
+                    </div>
 
                     {/* View Details Link */}
                     <Link

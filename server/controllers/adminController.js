@@ -176,17 +176,29 @@ export const updateOrderStatus = async (req, res) => {
   const { orderStatus, paymentStatus } = req.body;
 
   try {
-    const order = await Order.findById(req.params.id);
-    if (!order) {
-      return res.status(404).json({ message: 'Order not found' });
+    const mongoose = (await import('mongoose')).default;
+    let order = null;
+
+    if (mongoose.connection.readyState === 1) {
+      try {
+        if (mongoose.isValidObjectId(req.params.id)) {
+          order = await Order.findById(req.params.id);
+        } else {
+          order = await Order.findOne({ _id: req.params.id });
+        }
+      } catch (dbErr) {}
     }
 
-    if (orderStatus) order.orderStatus = orderStatus;
-    if (paymentStatus) order.paymentStatus = paymentStatus;
+    if (order) {
+      if (orderStatus) order.orderStatus = orderStatus;
+      if (paymentStatus) order.paymentStatus = paymentStatus;
+      const updatedOrder = await order.save();
+      return res.json(updatedOrder);
+    }
 
-    const updatedOrder = await order.save();
-    res.json(updatedOrder);
+    res.status(404).json({ message: 'Order not found' });
   } catch (error) {
+    console.error('Update order status error:', error);
     res.status(500).json({ message: 'Error updating order status' });
   }
 };

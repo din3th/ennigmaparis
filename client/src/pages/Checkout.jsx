@@ -1,8 +1,20 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { 
+  Building2, 
+  Copy, 
+  Check, 
+  UploadCloud, 
+  FileText, 
+  Image as ImageIcon, 
+  AlertCircle, 
+  CheckCircle2, 
+  X, 
+  Eye,
+  ShieldCheck
+} from 'lucide-react';
 import { useCart } from '../context/CartContext';
-
 import { API_BASE_URL } from '../config/api';
 
 const Checkout = () => {
@@ -24,12 +36,21 @@ const Checkout = () => {
     country: 'Sri Lanka',
   });
 
-  const [paymentMethod, setPaymentMethod] = useState('COD');
+  const [paymentMethod, setPaymentMethod] = useState('Bank Transfer');
   const [discountCodeInput, setDiscountCodeInput] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState(null);
   const [discountError, setDiscountError] = useState(null);
   const [discountSuccess, setDiscountSuccess] = useState(null);
   const [isApplyingDiscount, setIsApplyingDiscount] = useState(false);
+
+  // Bank Transfer States
+  const [transferReceipt, setTransferReceipt] = useState(null);
+  const [receiptFile, setReceiptFile] = useState(null);
+  const [receiptPreview, setReceiptPreview] = useState(null);
+  const [isUploadingReceipt, setIsUploadingReceipt] = useState(false);
+  const [receiptError, setReceiptError] = useState(null);
+  const [copiedField, setCopiedField] = useState(null);
+  const fileInputRef = useRef(null);
 
   const [cardDetails, setCardDetails] = useState({
     cardNumber: '',
@@ -39,6 +60,90 @@ const Checkout = () => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const copyToClipboard = (text, fieldName) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(fieldName);
+    setTimeout(() => setCopiedField(null), 2500);
+  };
+
+  const handleReceiptFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setReceiptError(null);
+
+    // Strict validation: check extension and MIME for PDF or image formats only
+    const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'webp'];
+    const ext = file.name.split('.').pop().toLowerCase();
+    const isAllowedExt = allowedExtensions.includes(ext);
+    const isAllowedMime = file.type === 'application/pdf' || file.type.startsWith('image/');
+
+    if (!isAllowedExt || !isAllowedMime) {
+      setReceiptError('Invalid file format. Only PDF documents (.pdf) or image files (.jpg, .jpeg, .png, .webp) are allowed.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    if (file.size > 15 * 1024 * 1024) {
+      setReceiptError('File exceeds 15MB limit. Please upload a file smaller than 15MB.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    setReceiptFile(file);
+
+    // Generate local preview if image
+    if (file.type.startsWith('image/')) {
+      const previewUrl = URL.createObjectURL(file);
+      setReceiptPreview(previewUrl);
+    } else {
+      setReceiptPreview(null);
+    }
+
+    // Upload receipt to server
+    setIsUploadingReceipt(true);
+    try {
+      const formData = new FormData();
+      formData.append('receipt', file);
+      const res = await axios.post(`${API_BASE_URL}/upload/receipt`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      setTransferReceipt({
+        url: res.data.url,
+        filename: res.data.filename,
+        originalName: res.data.originalName,
+        fileType: res.data.fileType,
+        size: res.data.size,
+      });
+      setError(null);
+    } catch (uploadErr) {
+      console.warn('Backend receipt upload issue, applying resilient base64 fallback:', uploadErr);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setTransferReceipt({
+          url: reader.result,
+          filename: file.name,
+          originalName: file.name,
+          fileType: file.type,
+          size: file.size,
+        });
+      };
+      reader.readAsDataURL(file);
+      setError(null);
+    } finally {
+      setIsUploadingReceipt(false);
+    }
+  };
+
+  const handleRemoveReceipt = () => {
+    setReceiptFile(null);
+    setReceiptPreview(null);
+    setTransferReceipt(null);
+    setReceiptError(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   const handleAddressChange = (e) => {
     setShippingAddress({ ...shippingAddress, [e.target.name]: e.target.value });
@@ -86,6 +191,24 @@ const Checkout = () => {
     try {
       let paymentResultData = null;
 
+      // Handle Direct Bank Fund Transfer
+      if (paymentMethod === 'Bank Transfer') {
+        if (!transferReceipt) {
+          setError('Please upload your bank fund transfer confirmation slip (PDF or Image) before completing your order.');
+          setLoading(false);
+          const slipSection = document.getElementById('receipt-upload-section');
+          if (slipSection) {
+            slipSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+          return;
+        }
+        paymentResultData = {
+          id: `transfer_${Date.now()}`,
+          status: 'Pending_Verification',
+          paymentGateway: 'Direct Bank Fund Transfer',
+        };
+      }
+
       // Handle Stripe / Card Payment
       if (paymentMethod === 'Stripe') {
         const stripeRes = await axios.post(`${API_BASE_URL}/payments/stripe/create-intent`, {
@@ -126,8 +249,9 @@ const Checkout = () => {
         orderItems: cartItems,
         shippingAddress,
         paymentMethod,
-        paymentStatus: paymentMethod === 'COD' ? 'Pending' : 'Completed',
+        paymentStatus: (paymentMethod === 'Stripe' || paymentMethod === 'PayHere') ? 'Completed' : 'Pending',
         paymentResult: paymentResultData,
+        transferReceipt: paymentMethod === 'Bank Transfer' ? transferReceipt : null,
         itemsPrice: cartTotal,
         shippingPrice,
         discountCode: appliedDiscount?.code || '',
@@ -316,7 +440,244 @@ const Checkout = () => {
                 Payment Options
               </h2>
               
-              <div className="space-y-3">
+              <div className="space-y-4">
+                {/* Direct Bank Fund Transfer */}
+                <div className={`border rounded-sm transition-all ${paymentMethod === 'Bank Transfer' ? 'border-black bg-white ring-1 ring-black shadow-sm' : 'border-gray-200 hover:border-gray-300 bg-white'}`}>
+                  <label className="flex items-start p-4 cursor-pointer">
+                    <input 
+                      type="radio" 
+                      name="payment" 
+                      value="Bank Transfer" 
+                      checked={paymentMethod === 'Bank Transfer'} 
+                      onChange={(e) => setPaymentMethod(e.target.value)} 
+                      className="mt-1 h-4 w-4 text-black focus:ring-black accent-black cursor-pointer" 
+                    />
+                    <div className="ml-3 flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="block text-sm font-bold text-gray-900 tracking-wide flex items-center gap-2">
+                          <Building2 size={16} className="text-gray-900" />
+                          Direct Bank Fund Transfer
+                        </span>
+                        <span className="text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 bg-black text-white rounded-xs">
+                          Manual Verification
+                        </span>
+                      </div>
+                      <span className="block text-xs text-gray-500 mt-1">
+                        Deposit or online transfer directly into our corporate account and attach the payment slip.
+                      </span>
+                    </div>
+                  </label>
+
+                  {/* Bank Details & Receipt Uploader */}
+                  {paymentMethod === 'Bank Transfer' && (
+                    <div className="p-5 pt-0 border-t border-gray-100 bg-gray-50/50">
+                      {/* Notice Header */}
+                      <div className="bg-amber-50/80 border border-amber-200/80 rounded-sm p-3.5 mb-5 mt-4">
+                        <div className="flex items-start gap-2.5">
+                          <ShieldCheck size={18} className="text-amber-700 flex-shrink-0 mt-0.5" />
+                          <div className="text-xs text-amber-900">
+                            <span className="font-bold block uppercase tracking-wider text-[11px] text-amber-800 mb-0.5">
+                              Payment Instructions
+                            </span>
+                            Please transfer the exact amount of <strong className="font-mono font-bold text-black">LKR {grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong> to the bank details below and attach your transfer confirmation slip (PDF or Image). Your pieces will be reserved and processed upon atelier verification.
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Official Bank Account Information */}
+                      <div className="bg-white border border-gray-200 rounded-sm p-4 mb-5 shadow-xs">
+                        <div className="flex items-center justify-between pb-3 mb-3 border-b border-gray-100">
+                          <span className="text-[11px] font-bold uppercase tracking-widest text-gray-500">
+                            ENNIGMA Atelier Bank Account
+                          </span>
+                          <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-bold">
+                            Active Corporate Account
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
+                          <div>
+                            <span className="text-gray-400 text-[10px] uppercase font-bold tracking-wider block">Beneficiary Bank</span>
+                            <span className="font-semibold text-gray-900 text-sm">Commercial Bank of Ceylon</span>
+                          </div>
+
+                          <div>
+                            <span className="text-gray-400 text-[10px] uppercase font-bold tracking-wider block">Account Name</span>
+                            <span className="font-semibold text-gray-900 text-sm">ENNIGMA PARIS (PVT) LTD</span>
+                          </div>
+
+                          <div className="sm:col-span-2 bg-gray-50 p-2.5 rounded border border-gray-100 flex items-center justify-between">
+                            <div>
+                              <span className="text-gray-400 text-[10px] uppercase font-bold tracking-wider block">Account Number</span>
+                              <span className="font-mono font-bold text-base text-gray-900 tracking-wider">8012 3456 7890 12</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => copyToClipboard('80123456789012', 'acc')}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold uppercase tracking-wider bg-black text-white hover:bg-gray-800 transition-colors rounded-xs cursor-pointer"
+                            >
+                              {copiedField === 'acc' ? (
+                                <>
+                                  <Check size={13} className="text-emerald-400" /> Copied!
+                                </>
+                              ) : (
+                                <>
+                                  <Copy size={13} /> Copy Number
+                                </>
+                              )}
+                            </button>
+                          </div>
+
+                          <div>
+                            <span className="text-gray-400 text-[10px] uppercase font-bold tracking-wider block">Branch</span>
+                            <span className="font-medium text-gray-800">Colombo Flagship / Cinnamon Gardens (035)</span>
+                          </div>
+
+                          <div className="flex items-center justify-between bg-gray-50 p-2 rounded border border-gray-100">
+                            <div>
+                              <span className="text-gray-400 text-[10px] uppercase font-bold tracking-wider block">SWIFT / BIC Code</span>
+                              <span className="font-mono font-bold text-gray-900">CCBCLKX</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => copyToClipboard('CCBCLKX', 'swift')}
+                              className="text-[11px] font-bold text-gray-600 hover:text-black flex items-center gap-1 cursor-pointer"
+                            >
+                              {copiedField === 'swift' ? <span className="text-emerald-600 font-bold">Copied!</span> : <><Copy size={12} /> Copy</>}
+                            </button>
+                          </div>
+
+                          <div className="sm:col-span-2 pt-1 border-t border-gray-100 text-[11px] text-gray-500">
+                            <strong className="text-gray-700">Payment Reference:</strong> Please enter <span className="font-mono text-black font-semibold bg-gray-100 px-1.5 py-0.5 rounded">{guestName || 'Your Name'}</span> or phone number in your transfer remark.
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Confirmation Slip Upload Section */}
+                      <div id="receipt-upload-section" className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold uppercase tracking-widest text-gray-900 flex items-center gap-1.5">
+                            <UploadCloud size={15} className="text-black" />
+                            Fund Transfer Confirmation Slip <span className="text-red-500">*</span>
+                          </label>
+                          <span className="text-[10px] font-medium text-gray-500">
+                            PDF or Image only (.pdf, .jpg, .png, .webp)
+                          </span>
+                        </div>
+
+                        {/* Hidden file input strictly filtering pdf or images */}
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept=".pdf,image/png,image/jpeg,image/jpg,image/webp,application/pdf"
+                          onChange={handleReceiptFileChange}
+                          className="hidden"
+                          id="fund-transfer-file-input"
+                        />
+
+                        {/* Upload Error Banner */}
+                        {receiptError && (
+                          <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-sm text-xs flex items-start gap-2">
+                            <AlertCircle size={16} className="text-red-600 flex-shrink-0 mt-0.5" />
+                            <div>{receiptError}</div>
+                          </div>
+                        )}
+
+                        {/* Upload In Progress */}
+                        {isUploadingReceipt && (
+                          <div className="border border-gray-200 bg-white p-6 rounded-sm text-center">
+                            <div className="w-7 h-7 border-2 border-black border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                            <p className="text-xs font-bold uppercase tracking-wider text-gray-700">
+                              Uploading Confirmation Slip...
+                            </p>
+                            <p className="text-[10px] text-gray-400 mt-0.5">Validating PDF / image format with atelier</p>
+                          </div>
+                        )}
+
+                        {/* Uploaded File Display */}
+                        {!isUploadingReceipt && transferReceipt && (
+                          <div className="border border-emerald-300 bg-white p-4 rounded-sm shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                              {receiptPreview ? (
+                                <img
+                                  src={receiptPreview}
+                                  alt="Receipt Preview"
+                                  className="w-14 h-14 object-cover rounded border border-gray-200 shadow-xs flex-shrink-0"
+                                />
+                              ) : (
+                                <div className="w-14 h-14 bg-red-50 border border-red-200 rounded flex flex-col items-center justify-center text-red-700 flex-shrink-0">
+                                  <FileText size={22} />
+                                  <span className="text-[9px] font-bold uppercase mt-0.5">PDF</span>
+                                </div>
+                              )}
+                              <div>
+                                <div className="flex items-center gap-1.5 mb-0.5">
+                                  <span className="text-xs font-bold text-gray-900 truncate max-w-[220px] sm:max-w-[280px]">
+                                    {transferReceipt.originalName || transferReceipt.filename}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 text-[11px] text-gray-500">
+                                  <span className="inline-flex items-center gap-1 text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.2 rounded text-[10px]">
+                                    <CheckCircle2 size={11} /> Attached
+                                  </span>
+                                  {transferReceipt.size && (
+                                    <span>{(transferReceipt.size / 1024).toFixed(0)} KB</span>
+                                  )}
+                                  <span className="uppercase text-[9px] font-mono text-gray-400">
+                                    {transferReceipt.fileType?.includes('pdf') ? 'PDF Document' : 'Image'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 self-end sm:self-auto">
+                              <a
+                                href={transferReceipt.url.startsWith('data:') || transferReceipt.url.startsWith('http') ? transferReceipt.url : `${API_BASE_URL.replace('/api', '')}${transferReceipt.url}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-gray-700 hover:text-black border border-gray-200 hover:border-black rounded-xs transition-colors inline-flex items-center gap-1"
+                              >
+                                <Eye size={13} /> View
+                              </a>
+                              <button
+                                type="button"
+                                onClick={handleRemoveReceipt}
+                                className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-red-600 hover:text-red-800 border border-red-200 hover:bg-red-50 rounded-xs transition-colors inline-flex items-center gap-1 cursor-pointer"
+                              >
+                                <X size={13} /> Remove
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Upload Dropzone when no file selected */}
+                        {!isUploadingReceipt && !transferReceipt && (
+                          <div
+                            onClick={() => fileInputRef.current?.click()}
+                            className="border-2 border-dashed border-gray-300 hover:border-black bg-white hover:bg-gray-50/50 p-6 rounded-sm text-center cursor-pointer transition-all group"
+                          >
+                            <div className="w-10 h-10 rounded-full bg-gray-100 group-hover:bg-black group-hover:text-white text-gray-600 flex items-center justify-center mx-auto mb-3 transition-colors">
+                              <UploadCloud size={20} />
+                            </div>
+                            <span className="block text-xs font-bold uppercase tracking-wider text-gray-900 mb-1">
+                              Click to Upload Confirmation Slip
+                            </span>
+                            <span className="block text-[11px] text-gray-500 mb-3">
+                              Accepted file formats: <strong className="text-gray-800">PDF, JPG, PNG, WEBP</strong> (Max 15MB)
+                            </span>
+                            <button
+                              type="button"
+                              className="inline-flex items-center gap-1.5 px-4 py-2 bg-black text-white text-[10px] font-bold uppercase tracking-widest rounded-xs group-hover:bg-gray-800 transition-colors pointer-events-none"
+                            >
+                              Choose Slip File
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 {/* Cash on Delivery */}
                 <label className={`flex items-start p-4 border rounded-sm cursor-pointer transition-all ${paymentMethod === 'COD' ? 'border-black bg-gray-50/50 ring-1 ring-black' : 'border-gray-200 hover:border-gray-300'}`}>
                   <input 

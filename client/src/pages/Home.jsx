@@ -43,7 +43,7 @@ const Home = () => {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            className="text-xs uppercase tracking-[0.3em] font-bold text-gray-300 mb-3"
+            className="text-[10px] sm:text-xs uppercase tracking-[0.25em] sm:tracking-[0.3em] font-bold text-gray-300 mb-2 sm:mb-3"
           >
             Spring / Summer Haute Couture
           </motion.span>
@@ -52,7 +52,7 @@ const Home = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-4xl md:text-7xl font-serif tracking-[0.2em] uppercase mb-6 font-bold text-white drop-shadow-md"
+            className="text-3xl sm:text-5xl md:text-7xl font-serif tracking-[0.14em] sm:tracking-[0.2em] uppercase mb-4 sm:mb-6 font-bold text-white drop-shadow-md text-center max-w-full"
           >
             THE CALM EDIT
           </motion.h1>
@@ -61,7 +61,7 @@ const Home = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-sm md:text-lg max-w-xl font-light mb-10 tracking-widest text-gray-200"
+            className="text-xs sm:text-base md:text-lg max-w-xl font-light mb-8 sm:mb-10 tracking-widest text-gray-200 px-4 text-center leading-relaxed"
           >
             A destination for timeless Parisian elegance and confident luxury.
           </motion.p>
@@ -73,7 +73,7 @@ const Home = () => {
           >
             <Link
               to="/shop?collection=the-calm-edit"
-              className="inline-block bg-white text-black px-10 py-4 uppercase tracking-[0.2em] text-xs font-bold hover:bg-gray-100 transition-all shadow-xl hover:scale-105"
+              className="inline-block bg-white text-black px-8 py-3.5 sm:px-10 sm:py-4 uppercase tracking-[0.18em] sm:tracking-[0.2em] text-[11px] sm:text-xs font-bold hover:bg-gray-100 transition-all shadow-xl hover:scale-105"
             >
               Shop The Collection
             </Link>
