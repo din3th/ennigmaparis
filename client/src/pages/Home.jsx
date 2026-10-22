@@ -24,15 +24,15 @@ const Home = () => {
   }, []);
 
   // Ultra 4K High Resolution Editorial Fashion Hero Image
-  const heroImageUrl = "https://images.unsplash.com/photo-1469334031218-e382a71b716b?q=80&w=3840&auto=format&fit=crop";
+  const heroImageUrl = "https://plus.unsplash.com/premium_photo-1664202526559-e21e9c0fb46a?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
 
   return (
     <div className="w-full font-sans">
       {/* Hero Section with Pristine High-Res Widescreen Editorial Banner */}
       <section className="relative h-[88vh] w-full bg-black overflow-hidden">
-        <img 
-          src={heroImageUrl} 
-          alt="Ennigma Paris Hero Collection" 
+        <img
+          src={heroImageUrl}
+          alt="Ennigma Paris Hero Collection"
           className="absolute inset-0 w-full h-full object-cover object-[center_35%] scale-105 transform transition-transform duration-10000 hover:scale-100"
         />
         {/* Luxury Vignette & Gradient Overlay */}
@@ -48,7 +48,7 @@ const Home = () => {
             Spring / Summer Haute Couture
           </motion.span>
 
-          <motion.h1 
+          <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
@@ -57,7 +57,7 @@ const Home = () => {
             THE CALM EDIT
           </motion.h1>
 
-          <motion.p 
+          <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
@@ -71,8 +71,8 @@ const Home = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.6 }}
           >
-            <Link 
-              to="/shop?collection=the-calm-edit" 
+            <Link
+              to="/shop?collection=the-calm-edit"
               className="inline-block bg-white text-black px-10 py-4 uppercase tracking-[0.2em] text-xs font-bold hover:bg-gray-100 transition-all shadow-xl hover:scale-105"
             >
               Shop The Collection
@@ -98,10 +98,10 @@ const Home = () => {
             ))}
           </div>
         )}
-        
+
         <div className="mt-16 text-center">
-          <Link 
-            to="/shop" 
+          <Link
+            to="/shop"
             className="inline-block border border-black text-black px-10 py-4 uppercase tracking-widest text-xs font-bold hover:bg-black hover:text-white transition-colors"
           >
             View All Collections
