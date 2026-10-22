@@ -24,7 +24,69 @@ const AdminProducts = () => {
   const [uploading, setUploading] = useState(false);
   const [isAddingOpen, setIsAddingOpen] = useState(false);
 
+  // Edit Product Modal state
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    price: '',
+    salePrice: '',
+    description: '',
+    images: [],
+    category: 'Women',
+    subcategory: 'Dresses & Evening Gowns',
+    sizes: 'UK 6, UK 8, UK 10, UK 12',
+    stock: 10,
+    isFeatured: true,
+  });
+  const [editImageUrlInput, setEditImageUrlInput] = useState('');
+  const [updatingProduct, setUpdatingProduct] = useState(false);
+
   const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
+
+  const openEditModal = (p) => {
+    setEditingProduct(p);
+    setEditFormData({
+      name: p.name || '',
+      price: p.price || '',
+      salePrice: p.salePrice || '',
+      description: p.description || '',
+      images: p.images || [],
+      category: p.category || 'Women',
+      subcategory: p.subcategory || 'Dresses & Evening Gowns',
+      sizes: Array.isArray(p.sizes) ? p.sizes.join(', ') : (p.sizes || 'UK 6, UK 8, UK 10, UK 12'),
+      stock: p.stock !== undefined ? p.stock : 10,
+      isFeatured: !!p.isFeatured,
+    });
+  };
+
+  const handleSaveEditProduct = async (e) => {
+    e.preventDefault();
+    if (!editingProduct) return;
+    setUpdatingProduct(true);
+    try {
+      await axios.put(
+        `${API_BASE_URL}/products/${editingProduct._id}`,
+        {
+          ...editFormData,
+          price: Number(editFormData.price),
+          salePrice: editFormData.salePrice ? Number(editFormData.salePrice) : null,
+          stock: Number(editFormData.stock),
+          sizes: typeof editFormData.sizes === 'string'
+            ? editFormData.sizes.split(',').map((s) => s.trim())
+            : editFormData.sizes,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      alert('Product details updated successfully!');
+      setEditingProduct(null);
+      fetchProducts();
+    } catch (err) {
+      console.error('Failed to update product:', err);
+      alert(err.response?.data?.message || 'Failed to update product');
+    } finally {
+      setUpdatingProduct(false);
+    }
+  };
 
   const fetchProducts = async () => {
     try {
@@ -464,8 +526,14 @@ const AdminProducts = () => {
                         </div>
                       </td>
 
-                      {/* Delete action */}
+                      {/* Edit and Delete actions */}
                       <td className="py-3 px-4 text-right">
+                        <button
+                          onClick={() => openEditModal(p)}
+                          className="text-black hover:underline text-[11px] font-bold uppercase tracking-wider mr-3 cursor-pointer"
+                        >
+                          Edit
+                        </button>
                         <button
                           onClick={() => handleDeleteProduct(p._id, p.name)}
                           className="text-red-600 hover:text-red-800 text-[11px] font-bold uppercase tracking-wider cursor-pointer"
@@ -483,6 +551,190 @@ const AdminProducts = () => {
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Product Modal */}
+      {editingProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white max-w-2xl w-full p-6 sm:p-8 rounded-sm shadow-2xl relative border border-gray-100 max-h-[90vh] overflow-y-auto font-sans">
+            <div className="flex justify-between items-center pb-4 border-b border-gray-100 mb-6">
+              <h2 className="text-sm font-bold uppercase tracking-widest text-gray-900">
+                Edit Product: {editingProduct.name}
+              </h2>
+              <button
+                onClick={() => setEditingProduct(null)}
+                className="text-gray-400 hover:text-black font-bold text-lg"
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditProduct} className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div>
+                <label className="block font-medium text-gray-700 mb-1">Product Title *</label>
+                <input
+                  className="w-full border border-gray-200 p-2.5 rounded-sm focus:border-black focus:outline-none"
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block font-medium text-gray-700 mb-1">Price (LKR) *</label>
+                <input
+                  type="number"
+                  className="w-full border border-gray-200 p-2.5 rounded-sm focus:border-black focus:outline-none"
+                  value={editFormData.price}
+                  onChange={(e) => setEditFormData({ ...editFormData, price: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block font-medium text-gray-700 mb-1">Sale Price (Optional)</label>
+                <input
+                  type="number"
+                  placeholder="Leave empty if not on sale"
+                  className="w-full border border-gray-200 p-2.5 rounded-sm focus:border-black focus:outline-none"
+                  value={editFormData.salePrice}
+                  onChange={(e) => setEditFormData({ ...editFormData, salePrice: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="block font-medium text-gray-700 mb-1">Stock Count *</label>
+                <input
+                  type="number"
+                  className="w-full border border-gray-200 p-2.5 rounded-sm focus:border-black focus:outline-none"
+                  value={editFormData.stock}
+                  onChange={(e) => setEditFormData({ ...editFormData, stock: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block font-medium text-gray-700 mb-1">Category *</label>
+                <select
+                  className="w-full border border-gray-200 p-2.5 rounded-sm focus:border-black focus:outline-none bg-white"
+                  value={editFormData.category}
+                  onChange={(e) => setEditFormData({ ...editFormData, category: e.target.value })}
+                  required
+                >
+                  <option value="Women">Women</option>
+                  <option value="Accessories">Accessories</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-medium text-gray-700 mb-1">Subcategory</label>
+                <input
+                  className="w-full border border-gray-200 p-2.5 rounded-sm focus:border-black focus:outline-none"
+                  value={editFormData.subcategory}
+                  onChange={(e) => setEditFormData({ ...editFormData, subcategory: e.target.value })}
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block font-medium text-gray-700 mb-1">Sizes (Comma separated)</label>
+                <input
+                  className="w-full border border-gray-200 p-2.5 rounded-sm focus:border-black focus:outline-none"
+                  value={editFormData.sizes}
+                  onChange={(e) => setEditFormData({ ...editFormData, sizes: e.target.value })}
+                />
+              </div>
+
+              {/* Add Image URL */}
+              <div className="sm:col-span-2">
+                <label className="block font-medium text-gray-700 mb-1">Add Image URL</label>
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    placeholder="https://..."
+                    value={editImageUrlInput}
+                    onChange={(e) => setEditImageUrlInput(e.target.value)}
+                    className="flex-1 border border-gray-200 p-2.5 rounded-sm focus:border-black focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (editImageUrlInput) {
+                        setEditFormData({ ...editFormData, images: [...editFormData.images, editImageUrlInput] });
+                        setEditImageUrlInput('');
+                      }
+                    }}
+                    className="bg-gray-100 hover:bg-black hover:text-white px-4 py-2 font-bold uppercase tracking-wider rounded-sm transition-colors cursor-pointer"
+                  >
+                    + Add
+                  </button>
+                </div>
+
+                {/* Previews */}
+                {editFormData.images && editFormData.images.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {editFormData.images.map((img, idx) => (
+                      <div key={idx} className="relative w-14 h-18 bg-gray-100 border border-gray-200 rounded-sm overflow-hidden">
+                        <img src={img} alt="Thumb" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditFormData({
+                              ...editFormData,
+                              images: editFormData.images.filter((_, i) => i !== idx),
+                            });
+                          }}
+                          className="absolute top-0.5 right-0.5 bg-red-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[9px] font-bold"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block font-medium text-gray-700 mb-1">Description</label>
+                <textarea
+                  rows="3"
+                  className="w-full border border-gray-200 p-2.5 rounded-sm focus:border-black focus:outline-none"
+                  value={editFormData.description}
+                  onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                />
+              </div>
+
+              <div className="sm:col-span-2 flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="editFeatured"
+                  checked={editFormData.isFeatured}
+                  onChange={(e) => setEditFormData({ ...editFormData, isFeatured: e.target.checked })}
+                  className="accent-black w-4 h-4"
+                />
+                <label htmlFor="editFeatured" className="text-gray-700 font-bold uppercase tracking-wider text-[11px] cursor-pointer">
+                  Feature in "The Calm Edit" Hero & Catalog
+                </label>
+              </div>
+
+              <div className="sm:col-span-2 flex justify-end gap-3 pt-4 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingProduct(null)}
+                  className="border border-gray-300 px-5 py-2.5 uppercase font-bold tracking-wider hover:border-black transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updatingProduct}
+                  className="bg-black text-white px-6 py-2.5 uppercase font-bold tracking-wider hover:bg-gray-800 disabled:opacity-50 transition-colors shadow-sm"
+                >
+                  {updatingProduct ? 'Saving...' : 'Update Product'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

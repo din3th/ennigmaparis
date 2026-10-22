@@ -35,9 +35,9 @@ const Register = () => {
 
     try {
       const { data } = await axios.post(`${API_BASE_URL}/users/register`, {
-        name,
-        email,
-        phone,
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        phone: phone.trim(),
         password,
       });
 

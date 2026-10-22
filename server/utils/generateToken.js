@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'supersecretjwtkeythatshouldbechanged', {
+const generateToken = (id, extra = {}) => {
+  return jwt.sign({ id, ...extra }, process.env.JWT_SECRET || 'supersecretjwtkeythatshouldbechanged', {
     expiresIn: '30d',
   });
 };

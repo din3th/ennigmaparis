@@ -33,9 +33,9 @@ export const protect = async (req, res, next) => {
 
       req.user = foundUser || {
         _id: decoded.id,
-        name: 'ENNIGMA Executive Admin',
-        email: 'admin@ennigmaparis.com',
-        role: 'admin',
+        name: decoded.name || '',
+        email: decoded.email || '',
+        role: decoded.role || 'customer',
       };
 
       return next();
@@ -48,6 +48,38 @@ export const protect = async (req, res, next) => {
   if (!token) {
     return res.status(401).json({ message: 'Not authorized, no token' });
   }
+};
+
+export const optionalAuth = async (req, res, next) => {
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    try {
+      const token = req.headers.authorization.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'supersecretjwtkeythatshouldbechanged');
+      if (decoded.id === 'admin_fallback_id') {
+        req.user = {
+          _id: 'admin_fallback_id',
+          name: 'ENNIGMA Executive Admin',
+          email: 'admin@ennigmaparis.com',
+          role: 'admin',
+        };
+        return next();
+      }
+      const mongoose = (await import('mongoose')).default;
+      let foundUser = null;
+      if (mongoose.connection.readyState === 1) {
+        try {
+          foundUser = await User.findById(decoded.id).select('-passwordHash');
+        } catch (dbErr) {}
+      }
+      req.user = foundUser || {
+        _id: decoded.id,
+        name: decoded.name || '',
+        email: decoded.email || '',
+        role: decoded.role || 'customer',
+      };
+    } catch (e) {}
+  }
+  next();
 };
 
 

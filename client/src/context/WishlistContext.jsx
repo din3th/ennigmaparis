@@ -1,4 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import axios from 'axios';
+import { API_BASE_URL } from '../config/api';
 
 const WishlistContext = createContext();
 
@@ -14,14 +16,29 @@ export const WishlistProvider = ({ children }) => {
     localStorage.setItem('wishlistItems', JSON.stringify(wishlistItems));
   }, [wishlistItems]);
 
-  const toggleWishlist = (product) => {
+  const toggleWishlist = async (product) => {
     const productId = product._id || product.id;
     const exists = wishlistItems.some((item) => (item._id || item.id) === productId);
 
     if (exists) {
-      setWishlistItems(wishlistItems.filter((item) => (item._id || item.id) !== productId));
+      setWishlistItems((prev) => prev.filter((item) => (item._id || item.id) !== productId));
     } else {
-      setWishlistItems([...wishlistItems, product]);
+      setWishlistItems((prev) => [...prev, product]);
+    }
+
+    // Synchronize with server if logged in
+    const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
+    if (token && productId) {
+      try {
+        await axios.post(
+          `${API_BASE_URL}/wishlist/toggle`,
+          { productId },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      } catch (err) {
+        // Silent catch for resilient offline or non-blocking operation
+        console.warn('Backend wishlist sync warning:', err.message);
+      }
     }
   };
 

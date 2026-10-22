@@ -1,16 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { X, Ruler } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { API_BASE_URL } from '../config/api';
-
 
 const ProductDetail = () => {
   const { slug } = useParams();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedSize, setSelectedSize] = useState('');
+  const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   
   // Review state
   const [rating, setRating] = useState(5);
@@ -197,7 +198,13 @@ const ProductDetail = () => {
           <div className="border-t border-gray-100 pt-6">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-xs font-bold tracking-widest uppercase text-gray-900">Select Size</h3>
-              <a href="#" className="text-xs text-gray-400 underline hover:text-black">Size Guide</a>
+              <button
+                type="button"
+                onClick={() => setIsSizeGuideOpen(true)}
+                className="text-xs text-gray-500 underline hover:text-black cursor-pointer flex items-center gap-1 font-medium"
+              >
+                <Ruler size={13} /> Size Guide
+              </button>
             </div>
             <div className="grid grid-cols-4 gap-3">
               {product.sizes && product.sizes.length > 0 ? (
@@ -321,6 +328,106 @@ const ProductDetail = () => {
           </div>
         </div>
       </div>
+
+      {/* Luxury Size Guide Modal */}
+      {isSizeGuideOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white max-w-2xl w-full p-6 sm:p-8 rounded-sm shadow-2xl relative border border-gray-100 max-h-[90vh] overflow-y-auto font-sans">
+            <button
+              onClick={() => setIsSizeGuideOpen(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-black p-1 transition-colors cursor-pointer"
+              aria-label="Close Size Guide"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="text-center pb-6 border-b border-gray-100">
+              <span className="text-[10px] uppercase font-bold tracking-[0.3em] text-gray-400 block mb-1">
+                Atelier Measurements
+              </span>
+              <h2 className="text-2xl font-serif uppercase tracking-widest text-gray-900">
+                ENNIGMA PARIS Size Chart
+              </h2>
+              <p className="text-xs text-gray-500 mt-1 font-sans">
+                Our silhouettes are cut according to standard British & French couture sizing.
+              </p>
+            </div>
+
+            {/* Sizing Table */}
+            <div className="py-6 overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-gray-200 bg-gray-50 text-[10px] uppercase font-bold tracking-widest text-gray-500">
+                    <th className="py-2.5 px-3">UK / Int</th>
+                    <th className="py-2.5 px-3">France / EU</th>
+                    <th className="py-2.5 px-3">Bust (in / cm)</th>
+                    <th className="py-2.5 px-3">Waist (in / cm)</th>
+                    <th className="py-2.5 px-3">Hips (in / cm)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 font-mono text-[11px]">
+                  <tr className="hover:bg-gray-50/50">
+                    <td className="py-2.5 px-3 font-bold text-gray-900">UK 6 (XS)</td>
+                    <td className="py-2.5 px-3 text-gray-600">34 EU</td>
+                    <td className="py-2.5 px-3">31.5" / 80 cm</td>
+                    <td className="py-2.5 px-3">24.5" / 62 cm</td>
+                    <td className="py-2.5 px-3">34.0" / 86 cm</td>
+                  </tr>
+                  <tr className="hover:bg-gray-50/50">
+                    <td className="py-2.5 px-3 font-bold text-gray-900">UK 8 (S)</td>
+                    <td className="py-2.5 px-3 text-gray-600">36 EU</td>
+                    <td className="py-2.5 px-3">33.5" / 85 cm</td>
+                    <td className="py-2.5 px-3">26.5" / 67 cm</td>
+                    <td className="py-2.5 px-3">36.0" / 91 cm</td>
+                  </tr>
+                  <tr className="hover:bg-gray-50/50">
+                    <td className="py-2.5 px-3 font-bold text-gray-900">UK 10 (M)</td>
+                    <td className="py-2.5 px-3 text-gray-600">38 EU</td>
+                    <td className="py-2.5 px-3">35.5" / 90 cm</td>
+                    <td className="py-2.5 px-3">28.5" / 72 cm</td>
+                    <td className="py-2.5 px-3">38.0" / 96 cm</td>
+                  </tr>
+                  <tr className="hover:bg-gray-50/50">
+                    <td className="py-2.5 px-3 font-bold text-gray-900">UK 12 (L)</td>
+                    <td className="py-2.5 px-3 text-gray-600">40 EU</td>
+                    <td className="py-2.5 px-3">37.5" / 95 cm</td>
+                    <td className="py-2.5 px-3">30.5" / 77 cm</td>
+                    <td className="py-2.5 px-3">40.0" / 101 cm</td>
+                  </tr>
+                  <tr className="hover:bg-gray-50/50">
+                    <td className="py-2.5 px-3 font-bold text-gray-900">UK 14 (XL)</td>
+                    <td className="py-2.5 px-3 text-gray-600">42 EU</td>
+                    <td className="py-2.5 px-3">39.5" / 100 cm</td>
+                    <td className="py-2.5 px-3">32.5" / 82 cm</td>
+                    <td className="py-2.5 px-3">42.0" / 106 cm</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* How to Measure */}
+            <div className="pt-4 border-t border-gray-100 text-xs text-gray-500 space-y-2 font-sans">
+              <p className="font-bold uppercase tracking-wider text-gray-700 text-[11px]">
+                How to Measure:
+              </p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li><strong>Bust:</strong> Measure around the fullest part of your chest with tape parallel to the floor.</li>
+                <li><strong>Waist:</strong> Measure around the narrowest point of your natural waistline.</li>
+                <li><strong>Hips:</strong> Measure around the fullest point of your hips with feet held together.</li>
+              </ul>
+            </div>
+
+            <div className="mt-6 text-center">
+              <button
+                onClick={() => setIsSizeGuideOpen(false)}
+                className="bg-black text-white px-8 py-2.5 text-xs font-bold uppercase tracking-widest hover:bg-gray-800 transition-colors"
+              >
+                Close Guide
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

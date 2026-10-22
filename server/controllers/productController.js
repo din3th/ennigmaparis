@@ -253,26 +253,50 @@ export const createProduct = async (req, res) => {
 export const updateProduct = async (req, res) => {
   try {
     let updatedProduct = null;
+    const { name, price, salePrice, description, images, category, subcategory, sizes, stock, isFeatured } = req.body;
 
     if (mongoose.connection.readyState === 1) {
       try {
         const product = await Product.findById(req.params.id);
         if (product) {
-          product.name = req.body.name || product.name;
-          product.price = req.body.price !== undefined ? req.body.price : product.price;
-          product.stock = req.body.stock !== undefined ? req.body.stock : product.stock;
+          if (name) {
+            product.name = name;
+            product.slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+          }
+          if (price !== undefined) product.price = Number(price);
+          if (salePrice !== undefined) product.salePrice = salePrice ? Number(salePrice) : null;
+          if (description !== undefined) product.description = description;
+          if (images && images.length > 0) product.images = images;
+          if (category) product.category = category;
+          if (subcategory) product.subcategory = subcategory;
+          if (sizes) product.sizes = sizes;
+          if (stock !== undefined) product.stock = Number(stock);
+          if (isFeatured !== undefined) product.isFeatured = isFeatured;
+
           updatedProduct = await product.save();
         }
-      } catch (dbErr) {}
+      } catch (dbErr) {
+        console.warn('DB update product error:', dbErr.message);
+      }
     }
 
     // Always update inMemoryStore
     const store = getFallbackProducts();
-    const memItem = store.find((p) => p._id === req.params.id);
+    const memItem = store.find((p) => String(p._id) === String(req.params.id));
     if (memItem) {
-      if (req.body.name) memItem.name = req.body.name;
-      if (req.body.price !== undefined) memItem.price = req.body.price;
-      if (req.body.stock !== undefined) memItem.stock = req.body.stock;
+      if (name) {
+        memItem.name = name;
+        memItem.slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+      }
+      if (price !== undefined) memItem.price = Number(price);
+      if (salePrice !== undefined) memItem.salePrice = salePrice ? Number(salePrice) : null;
+      if (description !== undefined) memItem.description = description;
+      if (images && images.length > 0) memItem.images = images;
+      if (category) memItem.category = category;
+      if (subcategory) memItem.subcategory = subcategory;
+      if (sizes) memItem.sizes = sizes;
+      if (stock !== undefined) memItem.stock = Number(stock);
+      if (isFeatured !== undefined) memItem.isFeatured = isFeatured;
       if (!updatedProduct) updatedProduct = memItem;
     }
 

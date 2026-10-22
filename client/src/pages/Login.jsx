@@ -20,7 +20,7 @@ const Login = () => {
 
     try {
       const { data } = await axios.post(`${API_BASE_URL}/users/login`, {
-        email,
+        email: email.trim().toLowerCase(),
         password,
       });
 

@@ -10,9 +10,17 @@ import Shop from './pages/Shop';
 import ProductDetail from './pages/ProductDetail';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
+import OrderSuccess from './pages/OrderSuccess';
+import Orders from './pages/Orders';
+import Profile from './pages/Profile';
 import WishlistPage from './pages/WishlistPage';
 import Register from './pages/Register';
 import Login from './pages/Login';
+import About from './pages/About';
+import ShippingReturns from './pages/ShippingReturns';
+import TermsPolicy from './pages/TermsPolicy';
+
+// Admin Pages
 import AdminDashboard from './pages/admin/Dashboard';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminProducts from './pages/admin/AdminProducts';
@@ -34,9 +42,16 @@ function App() {
               <Route path="/shop/:slug" element={<ProductDetail />} />
               <Route path="/cart" element={<Cart />} />
               <Route path="/checkout" element={<Checkout />} />
+              <Route path="/order/:id" element={<OrderSuccess />} />
+              <Route path="/orders" element={<Orders />} />
+              <Route path="/profile" element={<Profile />} />
               <Route path="/wishlist" element={<WishlistPage />} />
               <Route path="/register" element={<Register />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/shipping-returns" element={<ShippingReturns />} />
+              <Route path="/terms" element={<TermsPolicy />} />
+              <Route path="/privacy" element={<TermsPolicy />} />
             </Route>
             
             <Route path="/admin/login" element={<AdminLogin />} />

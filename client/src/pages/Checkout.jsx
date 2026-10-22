@@ -9,11 +9,14 @@ const Checkout = () => {
   const { cartItems, cartTotal, clearCart } = useCart();
   const navigate = useNavigate();
 
-  const [guestEmail, setGuestEmail] = useState('');
-  const [guestName, setGuestName] = useState('');
-  const [guestPhone, setGuestPhone] = useState('');
+  const storedUser = localStorage.getItem('userInfo');
+  const currentUser = storedUser ? JSON.parse(storedUser) : null;
 
-  const [shippingAddress, setShippingAddress] = useState({
+  const [guestEmail, setGuestEmail] = useState(currentUser?.email || '');
+  const [guestName, setGuestName] = useState(currentUser?.name || '');
+  const [guestPhone, setGuestPhone] = useState(currentUser?.phone || '');
+
+  const [shippingAddress, setShippingAddress] = useState(currentUser?.address || {
     street: '',
     city: '',
     state: 'Western',
@@ -135,13 +138,15 @@ const Checkout = () => {
         guestPhone,
       };
 
-      const response = await axios.post(`${API_BASE_URL}/orders`, orderData);
+      const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
+      const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+      const response = await axios.post(`${API_BASE_URL}/orders`, orderData, config);
       
       clearCart();
       setLoading(false);
 
-      alert(`Thank you for your order! Order #${response.data._id || response.data.id} has been placed successfully.`);
-      navigate('/');
+      const placedOrderId = response.data._id || response.data.id;
+      navigate(`/order/${placedOrderId}`);
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.message || 'Failed to place order. Please check your network connection.');

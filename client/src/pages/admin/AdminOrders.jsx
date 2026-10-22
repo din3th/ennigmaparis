@@ -8,6 +8,7 @@ const AdminOrders = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [updatingId, setUpdatingId] = useState(null);
+  const [selectedOrder, setSelectedOrder] = useState(null);
 
   const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
 
@@ -149,12 +150,18 @@ const AdminOrders = () => {
                       </select>
                     </td>
                     <td className="py-4 px-4 font-bold text-gray-900">LKR {order.total ? order.total.toLocaleString('en-US') : '0'}</td>
-                    <td className="py-4 px-4">
+                    <td className="py-4 px-4 flex items-center gap-3">
+                      <button
+                        onClick={() => setSelectedOrder(order)}
+                        className="text-xs text-black font-bold uppercase tracking-wider hover:underline cursor-pointer"
+                      >
+                        Inspect
+                      </button>
                       <button
                         onClick={() => handleDownloadInvoice(order._id)}
                         className="text-xs text-blue-600 underline font-semibold hover:text-blue-900 cursor-pointer"
                       >
-                        PDF Invoice
+                        PDF
                       </button>
                     </td>
                   </tr>
@@ -166,6 +173,110 @@ const AdminOrders = () => {
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Order Details Modal */}
+      {selectedOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white max-w-xl w-full p-6 sm:p-8 rounded-sm shadow-2xl relative border border-gray-100 max-h-[90vh] overflow-y-auto font-sans">
+            <div className="flex justify-between items-center pb-4 border-b border-gray-100 mb-6">
+              <div>
+                <span className="text-[10px] uppercase font-bold tracking-widest text-gray-400 block">
+                  Atelier Fulfillment Details
+                </span>
+                <h2 className="text-sm font-bold uppercase tracking-widest text-gray-900">
+                  Order #{selectedOrder._id}
+                </h2>
+              </div>
+              <button
+                onClick={() => setSelectedOrder(null)}
+                className="text-gray-400 hover:text-black font-bold text-lg p-1"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="space-y-6 text-xs font-sans">
+              {/* Customer and Address */}
+              <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-sm border border-gray-100">
+                <div>
+                  <span className="font-bold uppercase tracking-wider text-gray-500 text-[10px] block mb-1">
+                    Customer Info
+                  </span>
+                  <p className="font-bold text-gray-900">{selectedOrder.guestName || (selectedOrder.user && selectedOrder.user.name) || 'Anonymous'}</p>
+                  <p className="text-gray-600">{selectedOrder.guestEmail || (selectedOrder.user && selectedOrder.user.email)}</p>
+                  {selectedOrder.guestPhone && <p className="text-gray-500 font-mono mt-1">Tel: {selectedOrder.guestPhone}</p>}
+                </div>
+                <div>
+                  <span className="font-bold uppercase tracking-wider text-gray-500 text-[10px] block mb-1">
+                    Delivery Address
+                  </span>
+                  <p className="text-gray-700 leading-relaxed">
+                    {selectedOrder.shippingAddress?.street}<br />
+                    {selectedOrder.shippingAddress?.city}, {selectedOrder.shippingAddress?.state} {selectedOrder.shippingAddress?.zip}<br />
+                    {selectedOrder.shippingAddress?.country || 'Sri Lanka'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Items List */}
+              <div>
+                <span className="font-bold uppercase tracking-wider text-gray-500 text-[10px] block mb-2">
+                  Purchased Items ({selectedOrder.items?.length || 0})
+                </span>
+                <div className="divide-y divide-gray-100 border border-gray-100 rounded-sm">
+                  {selectedOrder.items?.map((item, idx) => (
+                    <div key={idx} className="p-3 flex justify-between items-center">
+                      <div className="flex items-center gap-3">
+                        {item.image && (
+                          <img src={item.image} alt={item.name} className="w-10 h-12 object-cover rounded-sm border border-gray-200" />
+                        )}
+                        <div>
+                          <p className="font-bold text-gray-900">{item.name}</p>
+                          <p className="text-[10px] text-gray-500">Size: {item.size || 'M'} &nbsp;•&nbsp; Qty: {item.qty}</p>
+                        </div>
+                      </div>
+                      <span className="font-mono font-bold text-gray-900">
+                        LKR {((item.price || 0) * (item.qty || 1)).toLocaleString('en-US')}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Payment & Totals */}
+              <div className="bg-gray-50 p-4 rounded-sm border border-gray-100 flex justify-between items-center">
+                <div>
+                  <p className="text-[11px] text-gray-500">Payment: <strong className="text-gray-900">{selectedOrder.paymentMethod}</strong> ({selectedOrder.paymentStatus})</p>
+                  <p className="text-[11px] text-gray-500">Status: <strong className="text-gray-900">{selectedOrder.orderStatus}</strong></p>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] text-gray-400 uppercase font-bold block">Total Amount</span>
+                  <span className="text-base font-bold font-mono text-gray-900">
+                    LKR {(selectedOrder.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => handleDownloadInvoice(selectedOrder._id)}
+                  className="bg-black text-white px-5 py-2 uppercase font-bold tracking-wider text-[11px] hover:bg-gray-800 transition-colors cursor-pointer"
+                >
+                  Download Invoice PDF
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedOrder(null)}
+                  className="border border-gray-300 px-5 py-2 uppercase font-bold tracking-wider text-[11px] hover:border-black transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
