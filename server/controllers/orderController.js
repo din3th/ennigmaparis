@@ -1,5 +1,35 @@
 import Order from '../models/Order.js';
-import { sendOrderConfirmationEmail } from '../utils/emailService.js';
+import Appearance from '../models/Appearance.js';
+import { sendOrderConfirmationEmail, sendAdminOrderNotificationEmail } from '../utils/emailService.js';
+import { sendAdminOrderWhatsAppAlerts } from '../utils/whatsappService.js';
+import { sendAdminOrderTelegramAlert } from '../utils/telegramService.js';
+
+const triggerOrderNotifications = async (orderData) => {
+  // 1. Send confirmation email to customer
+  sendOrderConfirmationEmail(orderData).catch(err => console.error('Customer confirmation email error:', err.message));
+
+  // 2. Retrieve notification settings from database
+  let notifSettings = {};
+  try {
+    const doc = await Appearance.findOne().select('notificationSettings');
+    if (doc?.notificationSettings) {
+      notifSettings = doc.notificationSettings;
+    }
+  } catch {}
+
+  // 3. Send executive order alert email to Owner & Manager
+  if (notifSettings.enableEmailAlerts !== false) {
+    sendAdminOrderNotificationEmail(orderData, notifSettings).catch(err => console.error('Admin order email alert error:', err.message));
+  }
+
+  // 4. Send executive WhatsApp order alert to Owner & Manager
+  if (notifSettings.enableWhatsAppAlerts !== false) {
+    sendAdminOrderWhatsAppAlerts(orderData, notifSettings).catch(err => console.error('Admin order WhatsApp alert error:', err.message));
+  }
+
+  // 5. Send instant Telegram push alert to Owner if configured
+  sendAdminOrderTelegramAlert(orderData).catch(err => console.error('Admin order Telegram alert error:', err.message));
+};
 
 const inMemoryOrders = [
   {
@@ -94,7 +124,7 @@ export const addOrderItems = async (req, res) => {
 
       const createdOrder = await order.save();
       inMemoryOrders.unshift(createdOrder.toObject ? createdOrder.toObject() : createdOrder);
-      sendOrderConfirmationEmail(createdOrder).catch(err => console.error('Email trigger error:', err));
+      triggerOrderNotifications(createdOrder);
       return res.status(201).json(createdOrder);
     }
   } catch (dbErr) {
@@ -122,7 +152,7 @@ export const addOrderItems = async (req, res) => {
   };
 
   inMemoryOrders.unshift(fallbackOrder);
-  sendOrderConfirmationEmail(fallbackOrder).catch(err => console.error('Fallback email error:', err));
+  triggerOrderNotifications(fallbackOrder);
   res.status(201).json(fallbackOrder);
 };
 

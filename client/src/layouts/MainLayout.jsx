@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { ShoppingBag, Search, Menu, User, ChevronDown, Heart, X, ArrowRight, Package, UserCheck } from 'lucide-react';
 import { useCart } from '../context/CartContext';
@@ -21,6 +21,24 @@ const MainLayout = () => {
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterMsg, setNewsletterMsg] = useState(null);
   const [isSubmittingNewsletter, setIsSubmittingNewsletter] = useState(false);
+  const [announcement, setAnnouncement] = useState({
+    show: true,
+    text: 'Complimentary Worldwide Express Delivery on Orders Over $250 • ENNIGMA PARIS',
+  });
+
+  useEffect(() => {
+    axios
+      .get(`${API_BASE_URL}/appearance`)
+      .then((res) => {
+        if (res.data) {
+          setAnnouncement({
+            show: res.data.showAnnouncement !== false,
+            text: res.data.announcementText || 'Complimentary Worldwide Express Delivery on Orders Over $250 • ENNIGMA PARIS',
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const isAdmin = !!localStorage.getItem('adminToken');
   const storedUser = localStorage.getItem('userInfo');
@@ -64,6 +82,13 @@ const MainLayout = () => {
 
   return (
     <div className="flex flex-col min-h-screen font-sans">
+      {/* Top Announcement Bar */}
+      {announcement.show && announcement.text && (
+        <div className="bg-black text-white text-[10px] sm:text-[11px] py-2 px-3 sm:px-4 text-center tracking-[0.2em] uppercase font-medium select-none z-50">
+          {announcement.text}
+        </div>
+      )}
+
       {/* Navbar */}
       <header 
         className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100"

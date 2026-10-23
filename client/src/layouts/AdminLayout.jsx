@@ -29,6 +29,10 @@ const AdminLayout = () => {
         <aside className="w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-gray-200 p-2 sm:p-4">
           <nav className="flex md:flex-col gap-1 sm:gap-2 overflow-x-auto pb-1 md:pb-0 text-xs sm:text-sm">
             <Link to="/admin" className="whitespace-nowrap py-1.5 sm:py-2 px-3 sm:px-4 hover:bg-gray-50 rounded font-medium text-gray-700 hover:text-black">Dashboard</Link>
+            <Link to="/admin/appearance" className="whitespace-nowrap py-1.5 sm:py-2 px-3 sm:px-4 hover:bg-gray-50 rounded font-medium text-gray-700 hover:text-black flex items-center justify-between">
+              <span>Appearance</span>
+              <span className="text-[10px] bg-black text-white px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ml-1">New</span>
+            </Link>
             <Link to="/admin/products" className="whitespace-nowrap py-1.5 sm:py-2 px-3 sm:px-4 hover:bg-gray-50 rounded font-medium text-gray-700 hover:text-black">Products</Link>
             <Link to="/admin/orders" className="whitespace-nowrap py-1.5 sm:py-2 px-3 sm:px-4 hover:bg-gray-50 rounded font-medium text-gray-700 hover:text-black">Orders</Link>
             <Link to="/admin/users" className="whitespace-nowrap py-1.5 sm:py-2 px-3 sm:px-4 hover:bg-gray-50 rounded font-medium text-gray-700 hover:text-black">Users</Link>

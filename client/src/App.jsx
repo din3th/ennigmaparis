@@ -23,6 +23,7 @@ import TermsPolicy from './pages/TermsPolicy';
 // Admin Pages
 import AdminDashboard from './pages/admin/Dashboard';
 import AdminLogin from './pages/admin/AdminLogin';
+import AdminAppearance from './pages/admin/AdminAppearance';
 import AdminProducts from './pages/admin/AdminProducts';
 import AdminOrders from './pages/admin/AdminOrders';
 import AdminUsers from './pages/admin/AdminUsers';
@@ -57,6 +58,7 @@ function App() {
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminDashboard />} />
+              <Route path="appearance" element={<AdminAppearance />} />
               <Route path="products" element={<AdminProducts />} />
               <Route path="orders" element={<AdminOrders />} />
               <Route path="users" element={<AdminUsers />} />

@@ -4,7 +4,7 @@ import axios from 'axios';
 import { X, Ruler } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
-import { API_BASE_URL } from '../config/api';
+import { API_BASE_URL, resolveImageUrl } from '../config/api';
 
 const ProductDetail = () => {
   const { slug } = useParams();
@@ -131,7 +131,7 @@ const ProductDetail = () => {
         <div className="flex flex-col space-y-4">
           <div className="aspect-[3/4] w-full bg-gray-100 overflow-hidden relative rounded-sm">
             <img 
-              src={product.images && product.images[0] ? product.images[0] : '/placeholder.jpg'} 
+              src={resolveImageUrl(product.images && product.images[0] ? product.images[0] : '/placeholder.jpg')} 
               alt={product.name} 
               className="object-cover w-full h-full"
             />
@@ -145,7 +145,7 @@ const ProductDetail = () => {
             <div className="grid grid-cols-2 gap-4">
               {product.images.slice(1).map((img, idx) => (
                 <div key={idx} className="aspect-[3/4] bg-gray-100 overflow-hidden rounded-sm">
-                  <img src={img} alt="Detail view" className="object-cover w-full h-full" />
+                  <img src={resolveImageUrl(img)} alt="Detail view" className="object-cover w-full h-full" />
                 </div>
               ))}
             </div>

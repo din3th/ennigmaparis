@@ -341,3 +341,161 @@ export const sendBackInStockEmail = async (email, product) => {
   }
 };
 
+/**
+ * Dispatches high-priority order notification email to Owner & Manager
+ */
+export const sendAdminOrderNotificationEmail = async (order, recipientsOverride = {}) => {
+  const ownerEmail = recipientsOverride.ownerEmail || process.env.OWNER_EMAIL;
+  const managerEmail = recipientsOverride.managerEmail || process.env.MANAGER_EMAIL;
+
+  const recipientList = [ownerEmail, managerEmail].filter(Boolean);
+  if (recipientList.length === 0 && process.env.EMAIL_FROM_ADDRESS) {
+    recipientList.push(process.env.EMAIL_FROM_ADDRESS);
+  }
+
+  if (recipientList.length === 0) {
+    console.log('[Admin Email Notification] Skipped: No owner or manager email defined.');
+    return;
+  }
+
+  const customerName = order.guestName || (order.user && order.user.name) || 'Guest Customer';
+  const customerEmail = order.guestEmail || (order.user && order.user.email) || 'Not provided';
+  const customerPhone = order.guestPhone || (order.user && order.user.phone) || 'Not provided';
+  const totalFormatted = Number(order.total || order.totalPrice || 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
+  const paymentMethod = order.paymentMethod || 'COD';
+  const paymentStatus = order.paymentStatus || 'Pending';
+  const adminUrl = `${process.env.FRONTEND_URL || 'http://localhost:5174'}/admin/orders`;
+
+  const address = order.shippingAddress || {};
+  const addressFormatted = `${address.street || ''}, ${address.city || ''}, ${address.state || ''} ${address.zip || ''}, ${address.country || ''}`.replace(/^[\s,]+|[\s,]+$/g, '');
+
+  const itemsHtml = (order.items || []).map((item, idx) => `
+    <tr style="border-bottom: 1px solid #eeeeee;">
+      <td style="padding: 10px 0; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 13px; color: #111;">
+        <strong>${idx + 1}. ${item.name}</strong><br/>
+        <span style="color: #666; font-size: 11px;">Size: ${item.size || 'Standard'} | Qty: ${item.qty}</span>
+      </td>
+      <td style="padding: 10px 0; font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 13px; font-weight: bold; text-align: right; color: #111;">
+        LKR ${(item.price * item.qty).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+      </td>
+    </tr>
+  `).join('');
+
+  const receiptHtml = order.transferReceipt ? `
+    <div style="background-color: #fff8e1; border: 1px solid #ffe082; padding: 12px 16px; border-radius: 4px; margin-top: 20px;">
+      <strong style="color: #f57f17; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Bank Fund Transfer Receipt Attached</strong>
+      <p style="margin: 4px 0 8px 0; font-size: 12px; color: #555;">The customer has submitted their bank deposit/transfer slip.</p>
+      <a href="${process.env.FRONTEND_URL || 'http://localhost:5174'}${order.transferReceipt}" target="_blank" style="display: inline-block; background-color: #f57f17; color: #fff; text-decoration: none; padding: 6px 14px; font-size: 11px; font-weight: bold; text-transform: uppercase; border-radius: 2px;">
+        View Transfer Confirmation
+      </a>
+    </div>
+  ` : '';
+
+  const emailHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>New Order Alert - ENNIGMA PARIS</title>
+    </head>
+    <body style="margin: 0; padding: 0; background-color: #f4f4f5; font-family: 'Helvetica Neue', Arial, sans-serif;">
+      <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f4f4f5; padding: 30px 10px;">
+        <tr>
+          <td align="center">
+            <table width="620" border="0" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border: 1px solid #e4e4e7; border-radius: 6px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+              <!-- Header -->
+              <tr>
+                <td style="background-color: #000000; padding: 25px 30px; text-align: center;">
+                  <span style="background-color: #ef4444; color: #ffffff; padding: 3px 8px; font-size: 10px; font-weight: bold; letter-spacing: 1.5px; text-transform: uppercase; border-radius: 3px; display: inline-block; margin-bottom: 8px;">
+                    EXECUTIVE ORDER ALERT
+                  </span>
+                  <h1 style="color: #ffffff; font-family: 'Georgia', serif; font-size: 22px; font-weight: normal; letter-spacing: 3px; text-transform: uppercase; margin: 0;">
+                    ENNIGMA PARIS
+                  </h1>
+                </td>
+              </tr>
+
+              <!-- Alert Body -->
+              <tr>
+                <td style="padding: 30px;">
+                  <div style="border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 20px;">
+                    <h2 style="font-size: 18px; margin: 0; color: #111; text-transform: uppercase; letter-spacing: 1px;">
+                      New Order Placed: #${order._id || order.id}
+                    </h2>
+                    <p style="margin: 4px 0 0 0; color: #666; font-size: 12px;">
+                      Total: <strong style="color: #000; font-size: 15px;">LKR ${totalFormatted}</strong> • Payment: <strong>${paymentMethod} (${paymentStatus})</strong>
+                    </p>
+                  </div>
+
+                  <!-- Customer Details -->
+                  <table width="100%" style="background-color: #f9fafb; border: 1px solid #f3f4f6; border-radius: 4px; padding: 14px; margin-bottom: 20px;">
+                    <tr>
+                      <td style="font-size: 12px; line-height: 1.8; color: #374151;">
+                        <strong>Customer Name:</strong> ${customerName}<br/>
+                        <strong>Phone:</strong> <a href="tel:${customerPhone}" style="color: #2563eb; text-decoration: none;">${customerPhone}</a><br/>
+                        <strong>Email:</strong> <a href="mailto:${customerEmail}" style="color: #2563eb; text-decoration: none;">${customerEmail}</a><br/>
+                        <strong>Shipping Address:</strong> ${addressFormatted || 'Not specified'}
+                      </td>
+                    </tr>
+                  </table>
+
+                  <!-- Order Items -->
+                  <h3 style="font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #6b7280; margin: 15px 0 8px 0;">
+                    Purchased Items (${order.items?.length || 0})
+                  </h3>
+                  <table width="100%" style="border-collapse: collapse; margin-bottom: 20px;">
+                    ${itemsHtml}
+                    <tr>
+                      <td style="padding: 12px 0; font-weight: bold; font-size: 14px; color: #000;">
+                        TOTAL AMOUNT
+                      </td>
+                      <td style="padding: 12px 0; font-weight: bold; font-size: 16px; text-align: right; color: #000;">
+                        LKR ${totalFormatted}
+                      </td>
+                    </tr>
+                  </table>
+
+                  ${receiptHtml}
+
+                  <!-- CTA Button -->
+                  <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                    <a href="${adminUrl}" style="background-color: #000000; color: #ffffff; text-decoration: none; padding: 12px 28px; font-size: 11px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; display: inline-block; border-radius: 2px;">
+                      Open Order In Admin Panel
+                    </a>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Footer -->
+              <tr>
+                <td style="background-color: #f9fafb; border-top: 1px solid #e5e7eb; padding: 15px 30px; text-align: center; font-size: 11px; color: #9ca3af;">
+                  Automated notification sent to System Owner & Manager • ENNIGMA Paris Maison
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+  `;
+
+  try {
+    const transporter = await getTransporter();
+    const mailOptions = {
+      from: `"${process.env.EMAIL_FROM_NAME || 'ENNIGMA PARIS'}" <${process.env.EMAIL_FROM_ADDRESS || 'fourthpeerson@gmail.com'}>`,
+      to: recipientList.join(', '),
+      subject: `🚨 [NEW ORDER] #${order._id || order.id} (LKR ${totalFormatted}) - ${customerName}`,
+      html: emailHtml,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`✅ Admin order notification email sent to [${recipientList.join(', ')}]`);
+    const previewUrl = nodemailer.getTestMessageUrl(info);
+    if (previewUrl) console.log(`✉️ VIEW ADMIN EMAIL ONLINE: ${previewUrl}`);
+  } catch (err) {
+    console.error('Failed to send admin order notification email:', err.message);
+  }
+};
+
+

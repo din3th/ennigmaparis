@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
+import { resolveImageUrl } from '../config/api';
 
 const ProductCard = ({ product }) => {
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
@@ -37,13 +38,13 @@ const ProductCard = ({ product }) => {
       <div className="relative aspect-[4/5] overflow-hidden bg-gray-100 mb-4 rounded-sm">
         <Link to={`/shop/${product.slug || product.handle || product._id}`}>
           <img 
-            src={product.images && product.images[0] ? product.images[0] : '/placeholder.jpg'}
+            src={resolveImageUrl(product.images && product.images[0] ? product.images[0] : '/placeholder.jpg')}
             alt={product.title || product.name}
             className="object-cover w-full h-full transform group-hover:scale-105 transition-transform duration-700"
           />
           {product.images && product.images[1] && (
             <img 
-              src={product.images[1]}
+              src={resolveImageUrl(product.images[1])}
               alt={product.title || product.name}
               className="absolute inset-0 object-cover w-full h-full opacity-0 group-hover:opacity-100 transition-opacity duration-700"
             />
