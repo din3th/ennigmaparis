@@ -10,6 +10,9 @@ dotenv.config();
 
 const app = express();
 
+// Trust reverse proxies (essential for Vercel Serverless & AWS Lambdas)
+app.set('trust proxy', 1);
+
 // Security Headers
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
@@ -17,26 +20,27 @@ app.use(helmet({
   contentSecurityPolicy: false,
 }));
 
-// Global Rate Limiter
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 300, // Limit each IP to 300 requests per window
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { message: 'Too many requests, please try again later.' }
-});
+// Rate Limiters (active in standalone Node.js, disabled on ephemeral serverless lambdas)
+if (!process.env.VERCEL) {
+  const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 300,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: 'Too many requests, please try again later.' }
+  });
 
-// Strict Rate Limiter for Authentication & Payments
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20, // 20 requests per 15 minutes
-  message: { message: 'Too many attempts, please try again after 15 minutes.' }
-});
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 20,
+    message: { message: 'Too many attempts, please try again after 15 minutes.' }
+  });
 
-app.use('/api', apiLimiter);
-app.use('/api/users/login', authLimiter);
-app.use('/api/users/register', authLimiter);
-app.use('/api/payments', authLimiter);
+  app.use('/api', apiLimiter);
+  app.use('/api/users/login', authLimiter);
+  app.use('/api/users/register', authLimiter);
+  app.use('/api/payments', authLimiter);
+}
 
 const allowedOrigins = [
   process.env.FRONTEND_URL,
