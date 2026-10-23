@@ -68,7 +68,8 @@ import { connectDB, dbMiddleware } from './config/db.js';
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+const uploadsDir = process.env.VERCEL ? path.join('/tmp', 'uploads') : path.join(process.cwd(), 'uploads');
+app.use('/uploads', express.static(uploadsDir));
 
 // Ensure DB is connected before any API route executes (critical for Vercel serverless cold-starts)
 app.use('/api', dbMiddleware);

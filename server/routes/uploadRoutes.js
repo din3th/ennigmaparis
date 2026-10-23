@@ -5,16 +5,22 @@ import multer from 'multer';
 
 const router = express.Router();
 
-// Ensure uploads directory exists
-const uploadsDir = path.join(process.cwd(), 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+// Ensure uploads directory exists (use /tmp on serverless like Vercel to prevent read-only filesystem crash)
+const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+const uploadsDir = isServerless ? path.join('/tmp', 'uploads') : path.join(process.cwd(), 'uploads');
+
+try {
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+} catch (e) {
+  console.warn('[Uploads Directory]:', e.message);
 }
 
 // Storage for general image uploads
 const imageStorage = multer.diskStorage({
   destination(req, file, cb) {
-    cb(null, 'uploads/');
+    cb(null, uploadsDir);
   },
   filename(req, file, cb) {
     const ext = path.extname(file.originalname).toLowerCase();
@@ -44,7 +50,7 @@ const uploadImage = multer({
 // Storage and filter for Bank Transfer Receipts (PDF or Images only)
 const receiptStorage = multer.diskStorage({
   destination(req, file, cb) {
-    cb(null, 'uploads/');
+    cb(null, uploadsDir);
   },
   filename(req, file, cb) {
     const ext = path.extname(file.originalname).toLowerCase();
