@@ -199,6 +199,14 @@ export const createProduct = async (req, res) => {
   try {
     const slug = req.body.slug || req.body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
     
+    let finalSizes = [];
+    if (Array.isArray(req.body.sizes)) {
+      finalSizes = req.body.sizes.map((s) => String(s).trim()).filter(Boolean);
+    } else if (typeof req.body.sizes === 'string') {
+      finalSizes = req.body.sizes.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+    if (finalSizes.length === 0) finalSizes = ['UK 6', 'UK 8', 'UK 10', 'UK 12'];
+
     const newProdData = {
       name: req.body.name,
       slug,
@@ -208,7 +216,7 @@ export const createProduct = async (req, res) => {
       images: req.body.images && req.body.images.length > 0 ? req.body.images : ['https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=800'],
       category: req.body.category || 'Women',
       subcategory: req.body.subcategory || 'Dresses & Evening Gowns',
-      sizes: req.body.sizes || [],
+      sizes: finalSizes,
       colors: req.body.colors || [],
       variants: req.body.variants || [],
       stock: req.body.stock !== undefined ? req.body.stock : 10,
@@ -255,6 +263,15 @@ export const updateProduct = async (req, res) => {
     let updatedProduct = null;
     const { name, price, salePrice, description, images, category, subcategory, sizes, stock, isFeatured } = req.body;
 
+    let sanitizedSizes = undefined;
+    if (sizes !== undefined) {
+      if (Array.isArray(sizes)) {
+        sanitizedSizes = sizes.map((s) => String(s).trim()).filter(Boolean);
+      } else if (typeof sizes === 'string') {
+        sanitizedSizes = sizes.split(',').map((s) => s.trim()).filter(Boolean);
+      }
+    }
+
     if (mongoose.connection.readyState === 1) {
       try {
         const product = await Product.findById(req.params.id);
@@ -269,7 +286,7 @@ export const updateProduct = async (req, res) => {
           if (images && images.length > 0) product.images = images;
           if (category) product.category = category;
           if (subcategory) product.subcategory = subcategory;
-          if (sizes) product.sizes = sizes;
+          if (sanitizedSizes !== undefined) product.sizes = sanitizedSizes;
           if (stock !== undefined) product.stock = Number(stock);
           if (isFeatured !== undefined) product.isFeatured = isFeatured;
 
@@ -294,7 +311,7 @@ export const updateProduct = async (req, res) => {
       if (images && images.length > 0) memItem.images = images;
       if (category) memItem.category = category;
       if (subcategory) memItem.subcategory = subcategory;
-      if (sizes) memItem.sizes = sizes;
+      if (sanitizedSizes !== undefined) memItem.sizes = sanitizedSizes;
       if (stock !== undefined) memItem.stock = Number(stock);
       if (isFeatured !== undefined) memItem.isFeatured = isFeatured;
       if (!updatedProduct) updatedProduct = memItem;

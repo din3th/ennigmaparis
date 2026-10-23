@@ -9,10 +9,12 @@ import {
   FileText, 
   CheckCircle2, 
   Eye, 
-  ShieldCheck 
+  ShieldCheck,
+  Truck
 } from 'lucide-react';
 import { API_BASE_URL } from '../../config/api';
 import { downloadInvoicePDF, openInvoicePDF } from '../../utils/invoiceService';
+import CourierWaybillModal from '../../components/CourierWaybillModal';
 
 const AdminOrders = () => {
   const [orders, setOrders] = useState([]);
@@ -20,6 +22,7 @@ const AdminOrders = () => {
   const [error, setError] = useState(null);
   const [updatingId, setUpdatingId] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [waybillOrder, setWaybillOrder] = useState(null);
   const [confirmationNotice, setConfirmationNotice] = useState(null);
 
   const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
@@ -216,7 +219,7 @@ const AdminOrders = () => {
                       </select>
                     </td>
                     <td className="py-4 px-4 font-bold text-gray-900">LKR {order.total ? order.total.toLocaleString('en-US') : '0'}</td>
-                    <td className="py-4 px-4 flex items-center gap-3">
+                    <td className="py-4 px-4 flex items-center gap-2">
                       <button
                         onClick={() => setSelectedOrder(order)}
                         className="text-xs text-black font-bold uppercase tracking-wider hover:underline cursor-pointer"
@@ -224,11 +227,18 @@ const AdminOrders = () => {
                         Inspect
                       </button>
                       <button
+                        onClick={() => setWaybillOrder(order)}
+                        title="Generate Printable Courier Waybill"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-gray-900 bg-gray-100 hover:bg-black hover:text-white px-2 py-1 rounded-xs transition-colors cursor-pointer"
+                      >
+                        <Truck size={12} /> Waybill
+                      </button>
+                      <button
                         onClick={() => handleOpenInvoice(order._id)}
                         title="Open Invoice PDF in Browser Tab"
                         className="text-xs text-blue-600 underline font-semibold hover:text-blue-900 cursor-pointer"
                       >
-                        View PDF
+                        PDF
                       </button>
                       <button
                         onClick={() => handleDownloadInvoice(order._id)}
@@ -477,17 +487,24 @@ const AdminOrders = () => {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => handleOpenInvoice(selectedOrder._id)}
-                    className="bg-black text-white px-4 py-2 uppercase font-bold tracking-wider text-[11px] hover:bg-gray-800 transition-colors cursor-pointer flex items-center gap-1.5"
+                    onClick={() => setWaybillOrder(selectedOrder)}
+                    className="bg-stone-900 text-white px-3.5 py-2 uppercase font-bold tracking-wider text-[11px] hover:bg-black transition-colors cursor-pointer flex items-center gap-1.5 shadow-xs"
                   >
-                    <Printer size={13} /> Open &amp; Print
+                    <Truck size={13} /> Print Waybill
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenInvoice(selectedOrder._id)}
+                    className="bg-black text-white px-3.5 py-2 uppercase font-bold tracking-wider text-[11px] hover:bg-gray-800 transition-colors cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Printer size={13} /> Invoice
                   </button>
                   <button
                     type="button"
                     onClick={() => handleDownloadInvoice(selectedOrder._id)}
-                    className="border border-black text-black px-4 py-2 uppercase font-bold tracking-wider text-[11px] hover:bg-black hover:text-white transition-colors cursor-pointer flex items-center gap-1.5"
+                    className="border border-black text-black px-3.5 py-2 uppercase font-bold tracking-wider text-[11px] hover:bg-black hover:text-white transition-colors cursor-pointer flex items-center gap-1.5"
                   >
-                    <Download size={13} /> Download PDF
+                    <Download size={13} /> Download
                   </button>
                   <button
                     type="button"
@@ -502,6 +519,13 @@ const AdminOrders = () => {
           </div>
         </div>
       )}
+
+      {/* Printable Dispatch Waybill Modal */}
+      <CourierWaybillModal
+        isOpen={!!waybillOrder}
+        onClose={() => setWaybillOrder(null)}
+        order={waybillOrder}
+      />
     </div>
   );
 };

@@ -3,6 +3,12 @@ import axios from 'axios';
 
 import { API_BASE_URL } from '../../config/api';
 
+const PRESET_SIZES = [
+  'UK 4', 'UK 6', 'UK 8', 'UK 10', 'UK 12', 'UK 14', 'UK 16', 'UK 18',
+  'XS', 'S', 'M', 'L', 'XL', 'XXL',
+  'One Size', 'Free Size'
+];
+
 const AdminProducts = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,7 +25,8 @@ const AdminProducts = () => {
   const [imageUrlInput, setImageUrlInput] = useState('');
   const [category, setCategory] = useState('Women');
   const [subcategory, setSubcategory] = useState('Dresses & Evening Gowns');
-  const [sizes, setSizes] = useState('UK 6, UK 8, UK 10, UK 12');
+  const [selectedSizes, setSelectedSizes] = useState(['UK 6', 'UK 8', 'UK 10', 'UK 12']);
+  const [customSizeInput, setCustomSizeInput] = useState('');
   const [stock, setStock] = useState(15);
   const [uploading, setUploading] = useState(false);
   const [isAddingOpen, setIsAddingOpen] = useState(false);
@@ -34,17 +41,64 @@ const AdminProducts = () => {
     images: [],
     category: 'Women',
     subcategory: 'Dresses & Evening Gowns',
-    sizes: 'UK 6, UK 8, UK 10, UK 12',
+    sizes: ['UK 6', 'UK 8', 'UK 10', 'UK 12'],
     stock: 10,
     isFeatured: true,
   });
+  const [editCustomSizeInput, setEditCustomSizeInput] = useState('');
   const [editImageUrlInput, setEditImageUrlInput] = useState('');
   const [updatingProduct, setUpdatingProduct] = useState(false);
 
   const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
 
+  const toggleAddSize = (sz) => {
+    setSelectedSizes((prev) =>
+      prev.includes(sz) ? prev.filter((s) => s !== sz) : [...prev, sz]
+    );
+  };
+
+  const handleAddCustomSize = (e) => {
+    e.preventDefault();
+    if (!customSizeInput.trim()) return;
+    const clean = customSizeInput.trim();
+    if (!selectedSizes.includes(clean)) {
+      setSelectedSizes([...selectedSizes, clean]);
+    }
+    setCustomSizeInput('');
+  };
+
+  const toggleEditSize = (sz) => {
+    setEditFormData((prev) => {
+      const current = Array.isArray(prev.sizes) ? prev.sizes : [];
+      const updated = current.includes(sz)
+        ? current.filter((s) => s !== sz)
+        : [...current, sz];
+      return { ...prev, sizes: updated };
+    });
+  };
+
+  const handleAddEditCustomSize = (e) => {
+    e.preventDefault();
+    if (!editCustomSizeInput.trim()) return;
+    const clean = editCustomSizeInput.trim();
+    setEditFormData((prev) => {
+      const current = Array.isArray(prev.sizes) ? prev.sizes : [];
+      if (!current.includes(clean)) {
+        return { ...prev, sizes: [...current, clean] };
+      }
+      return prev;
+    });
+    setEditCustomSizeInput('');
+  };
+
   const openEditModal = (p) => {
     setEditingProduct(p);
+    const productSizes = Array.isArray(p.sizes) && p.sizes.length > 0
+      ? p.sizes
+      : (typeof p.sizes === 'string' && p.sizes.trim()
+          ? p.sizes.split(',').map((s) => s.trim()).filter(Boolean)
+          : ['UK 6', 'UK 8', 'UK 10', 'UK 12']);
+
     setEditFormData({
       name: p.name || '',
       price: p.price || '',
@@ -53,7 +107,7 @@ const AdminProducts = () => {
       images: p.images || [],
       category: p.category || 'Women',
       subcategory: p.subcategory || 'Dresses & Evening Gowns',
-      sizes: Array.isArray(p.sizes) ? p.sizes.join(', ') : (p.sizes || 'UK 6, UK 8, UK 10, UK 12'),
+      sizes: productSizes,
       stock: p.stock !== undefined ? p.stock : 10,
       isFeatured: !!p.isFeatured,
     });
@@ -71,9 +125,11 @@ const AdminProducts = () => {
           price: Number(editFormData.price),
           salePrice: editFormData.salePrice ? Number(editFormData.salePrice) : null,
           stock: Number(editFormData.stock),
-          sizes: typeof editFormData.sizes === 'string'
-            ? editFormData.sizes.split(',').map((s) => s.trim())
-            : editFormData.sizes,
+          sizes: Array.isArray(editFormData.sizes)
+            ? editFormData.sizes
+            : (typeof editFormData.sizes === 'string'
+                ? editFormData.sizes.split(',').map((s) => s.trim()).filter(Boolean)
+                : []),
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -202,7 +258,7 @@ const AdminProducts = () => {
           images: finalImages,
           category,
           subcategory,
-          sizes: sizes.split(',').map((s) => s.trim()),
+          sizes: selectedSizes.length > 0 ? selectedSizes : ['One Size'],
           stock: Number(stock),
           brand: 'ENNIGMA PARIS',
           isFeatured: true,
@@ -213,6 +269,7 @@ const AdminProducts = () => {
       );
 
       setName(''); setPrice(''); setDescription(''); setImages([]); setCategory('Women'); setSubcategory('Dresses & Evening Gowns'); setStock(15);
+      setSelectedSizes(['UK 6', 'UK 8', 'UK 10', 'UK 12']);
       setIsAddingOpen(false);
       fetchProducts();
       alert('Product created successfully with multiple images!');
@@ -325,6 +382,111 @@ const AdminProducts = () => {
                 onChange={(e) => setStock(Number(e.target.value))} 
                 required 
               />
+            </div>
+
+            {/* Interactive Sizing Manager for New Product */}
+            <div className="sm:col-span-2 bg-gray-50 border border-gray-200 p-4 rounded-sm space-y-3">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                <div>
+                  <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider">
+                    Available Garment Sizes * ({selectedSizes.length} Selected)
+                  </label>
+                  <span className="text-[11px] text-gray-500">
+                    Click preset buttons or type custom sizes. These sizes will be selectable on the storefront.
+                  </span>
+                </div>
+                <div className="flex gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSizes(['UK 6', 'UK 8', 'UK 10', 'UK 12', 'UK 14'])}
+                    className="text-[10px] uppercase font-bold text-gray-600 bg-white border border-gray-200 px-2 py-1 rounded hover:bg-black hover:text-white transition-colors"
+                  >
+                    UK 6-14
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSizes(['XS', 'S', 'M', 'L', 'XL'])}
+                    className="text-[10px] uppercase font-bold text-gray-600 bg-white border border-gray-200 px-2 py-1 rounded hover:bg-black hover:text-white transition-colors"
+                  >
+                    XS-XL
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSizes([])}
+                    className="text-[10px] uppercase font-bold text-red-600 bg-white border border-red-200 px-2 py-1 rounded hover:bg-red-600 hover:text-white transition-colors"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+
+              {/* Preset Chips */}
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {PRESET_SIZES.map((sz) => {
+                  const isChecked = selectedSizes.includes(sz);
+                  return (
+                    <button
+                      key={sz}
+                      type="button"
+                      onClick={() => toggleAddSize(sz)}
+                      className={`px-3 py-1 text-xs font-mono font-bold rounded transition-all cursor-pointer border ${
+                        isChecked
+                          ? 'bg-black text-white border-black shadow-xs'
+                          : 'bg-white text-gray-700 border-gray-300 hover:border-black'
+                      }`}
+                    >
+                      {sz} {isChecked ? '✓' : '+'}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Custom Size Adder */}
+              <div className="flex gap-2 pt-2 border-t border-gray-200">
+                <input
+                  type="text"
+                  placeholder="Add custom size (e.g. UK 20, 38 EU, Petite, Tailored)..."
+                  value={customSizeInput}
+                  onChange={(e) => setCustomSizeInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddCustomSize(e);
+                    }
+                  }}
+                  className="flex-1 border border-gray-300 p-2 text-xs bg-white focus:border-black focus:outline-none rounded-xs font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddCustomSize}
+                  className="bg-gray-800 text-white px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-xs hover:bg-black transition-colors"
+                >
+                  + Add Size
+                </button>
+              </div>
+
+              {/* Active Selected Size Tags */}
+              {selectedSizes.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <span className="text-[10px] uppercase font-bold text-gray-500 mr-1">Active Sizes:</span>
+                  {selectedSizes.map((sz) => (
+                    <span
+                      key={sz}
+                      className="inline-flex items-center gap-1 bg-black text-white font-mono text-[11px] font-bold px-2 py-0.5 rounded-xs"
+                    >
+                      {sz}
+                      <button
+                        type="button"
+                        onClick={() => toggleAddSize(sz)}
+                        className="text-gray-400 hover:text-white font-bold ml-0.5 cursor-pointer"
+                        title="Remove size"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Multiple Product Images Upload */}
@@ -464,6 +626,15 @@ const AdminProducts = () => {
                           <div>
                             <span className="font-bold text-gray-900 uppercase font-heading text-xs block">{p.name}</span>
                             <span className="text-[10px] text-gray-400 font-mono">ID: {p._id.substring(18)}</span>
+                            {p.sizes && p.sizes.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {p.sizes.map((sz, i) => (
+                                  <span key={i} className="text-[9px] bg-gray-100 text-gray-700 font-mono px-1.5 py-0.2 rounded-xs border border-gray-200">
+                                    {sz}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </td>
@@ -637,13 +808,110 @@ const AdminProducts = () => {
                 />
               </div>
 
-              <div className="sm:col-span-2">
-                <label className="block font-medium text-gray-700 mb-1">Sizes (Comma separated)</label>
-                <input
-                  className="w-full border border-gray-200 p-2.5 rounded-sm focus:border-black focus:outline-none"
-                  value={editFormData.sizes}
-                  onChange={(e) => setEditFormData({ ...editFormData, sizes: e.target.value })}
-                />
+              {/* Interactive Sizing Manager for Edit Product */}
+              <div className="sm:col-span-2 bg-gray-50 border border-gray-200 p-4 rounded-sm space-y-3">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-900 uppercase tracking-wider">
+                      Product Sizes * ({Array.isArray(editFormData.sizes) ? editFormData.sizes.length : 0} Configured)
+                    </label>
+                    <span className="text-[11px] text-gray-500">
+                      Toggle preset chips or add custom sizes to update store stock choices.
+                    </span>
+                  </div>
+                  <div className="flex gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setEditFormData({ ...editFormData, sizes: ['UK 6', 'UK 8', 'UK 10', 'UK 12', 'UK 14'] })}
+                      className="text-[10px] uppercase font-bold text-gray-600 bg-white border border-gray-200 px-2 py-1 rounded hover:bg-black hover:text-white transition-colors"
+                    >
+                      UK 6-14
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditFormData({ ...editFormData, sizes: ['XS', 'S', 'M', 'L', 'XL'] })}
+                      className="text-[10px] uppercase font-bold text-gray-600 bg-white border border-gray-200 px-2 py-1 rounded hover:bg-black hover:text-white transition-colors"
+                    >
+                      XS-XL
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditFormData({ ...editFormData, sizes: [] })}
+                      className="text-[10px] uppercase font-bold text-red-600 bg-white border border-red-200 px-2 py-1 rounded hover:bg-red-600 hover:text-white transition-colors"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                {/* Preset Chips */}
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {PRESET_SIZES.map((sz) => {
+                    const currentSizes = Array.isArray(editFormData.sizes) ? editFormData.sizes : [];
+                    const isChecked = currentSizes.includes(sz);
+                    return (
+                      <button
+                        key={sz}
+                        type="button"
+                        onClick={() => toggleEditSize(sz)}
+                        className={`px-3 py-1 text-xs font-mono font-bold rounded transition-all cursor-pointer border ${
+                          isChecked
+                            ? 'bg-black text-white border-black shadow-xs'
+                            : 'bg-white text-gray-700 border-gray-300 hover:border-black'
+                        }`}
+                      >
+                        {sz} {isChecked ? '✓' : '+'}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Custom Size Adder */}
+                <div className="flex gap-2 pt-2 border-t border-gray-200">
+                  <input
+                    type="text"
+                    placeholder="Add custom size (e.g. UK 20, 38 EU, Petite, Tailored)..."
+                    value={editCustomSizeInput}
+                    onChange={(e) => setEditCustomSizeInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddEditCustomSize(e);
+                      }
+                    }}
+                    className="flex-1 border border-gray-300 p-2 text-xs bg-white focus:border-black focus:outline-none rounded-xs font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddEditCustomSize}
+                    className="bg-gray-800 text-white px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-xs hover:bg-black transition-colors"
+                  >
+                    + Add Size
+                  </button>
+                </div>
+
+                {/* Active Selected Size Tags */}
+                {Array.isArray(editFormData.sizes) && editFormData.sizes.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    <span className="text-[10px] uppercase font-bold text-gray-500 mr-1">Active Sizes:</span>
+                    {editFormData.sizes.map((sz) => (
+                      <span
+                        key={sz}
+                        className="inline-flex items-center gap-1 bg-black text-white font-mono text-[11px] font-bold px-2 py-0.5 rounded-xs"
+                      >
+                        {sz}
+                        <button
+                          type="button"
+                          onClick={() => toggleEditSize(sz)}
+                          className="text-gray-400 hover:text-white font-bold ml-0.5 cursor-pointer"
+                          title="Remove size"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Add Image URL */}

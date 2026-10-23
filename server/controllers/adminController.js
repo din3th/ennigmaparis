@@ -2,6 +2,7 @@ import Order from '../models/Order.js';
 import Product from '../models/Product.js';
 import User from '../models/User.js';
 import Newsletter from '../models/Newsletter.js';
+import { sendOrderStatusUpdateEmail } from '../utils/emailService.js';
 
 // @desc    Get Admin Dashboard Stats Overview with Chart Trends
 // @route   GET /api/admin/stats
@@ -173,7 +174,7 @@ export const exportCustomersCSV = async (req, res) => {
 // @route   PUT /api/admin/orders/:id/status
 // @access  Private/Admin
 export const updateOrderStatus = async (req, res) => {
-  const { orderStatus, paymentStatus } = req.body;
+  const { orderStatus, paymentStatus, trackingNumber, carrier, trackingUrl, dispatchNote } = req.body;
 
   try {
     const mongoose = (await import('mongoose')).default;
@@ -182,17 +183,34 @@ export const updateOrderStatus = async (req, res) => {
     if (mongoose.connection.readyState === 1) {
       try {
         if (mongoose.isValidObjectId(req.params.id)) {
-          order = await Order.findById(req.params.id);
+          order = await Order.findById(req.params.id).populate('user', 'name email');
         } else {
-          order = await Order.findOne({ _id: req.params.id });
+          order = await Order.findOne({ _id: req.params.id }).populate('user', 'name email');
         }
       } catch (dbErr) {}
     }
 
     if (order) {
+      const previousStatus = order.orderStatus;
       if (orderStatus) order.orderStatus = orderStatus;
       if (paymentStatus) order.paymentStatus = paymentStatus;
+      if (trackingNumber !== undefined) order.trackingNumber = trackingNumber;
+      if (carrier !== undefined) order.carrier = carrier;
+      if (trackingUrl !== undefined) order.trackingUrl = trackingUrl;
+      if (dispatchNote !== undefined) order.dispatchNote = dispatchNote;
+
       const updatedOrder = await order.save();
+
+      // Trigger automatic status update email to customer if status changed
+      if (orderStatus && orderStatus !== previousStatus) {
+        sendOrderStatusUpdateEmail(updatedOrder, previousStatus, orderStatus, {
+          trackingNumber: updatedOrder.trackingNumber,
+          carrier: updatedOrder.carrier,
+          trackingUrl: updatedOrder.trackingUrl,
+          dispatchNote: updatedOrder.dispatchNote,
+        }).catch((err) => console.error('Automated status email error:', err.message));
+      }
+
       return res.json(updatedOrder);
     }
 

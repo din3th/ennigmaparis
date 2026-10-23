@@ -8,13 +8,23 @@ vi.mock('../models/Category.js', () => ({
   },
 }));
 
+vi.mock('../middleware/authMiddleware.js', () => ({
+  protect: (req, res, next) => {
+    req.user = { _id: 'mock_admin_1', role: 'admin' };
+    next();
+  },
+  admin: (req, res, next) => next(),
+}));
+
 import productRoutes from '../routes/productRoutes.js';
 import paymentRoutes from '../routes/paymentRoutes.js';
+import uploadRoutes from '../routes/uploadRoutes.js';
 
 const app = express();
 app.use(express.json());
 app.use('/api/products', productRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/upload', uploadRoutes);
 
 describe('Ennigma API Endpoints', () => {
   it('GET /api/products/categories/tree should return default category tree', async () => {
@@ -41,6 +51,28 @@ describe('Ennigma API Endpoints', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.clientSecret).toBeDefined();
+  });
+
+  it('GET /api/upload/config should return storage configuration and CDN status', async () => {
+    const res = await request(app).get('/api/upload/config');
+    expect(res.status).toBe(200);
+    expect(res.body.storageMode).toBeDefined();
+    expect(typeof res.body.cloudinaryEnabled).toBe('boolean');
+  });
+
+  it('POST /api/products should preserve custom sizes array added by admin', async () => {
+    const res = await request(app)
+      .post('/api/products')
+      .send({
+        name: 'Atelier Silk Gown',
+        price: 9500,
+        description: 'Silk luxury gown',
+        category: 'Women',
+        sizes: ['UK 8', 'UK 10', 'UK 12', 'UK 14', 'One Size'],
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.sizes).toEqual(['UK 8', 'UK 10', 'UK 12', 'UK 14', 'One Size']);
   });
 });
 
