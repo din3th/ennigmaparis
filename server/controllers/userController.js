@@ -3,6 +3,8 @@ import generateToken from '../utils/generateToken.js';
 import bcrypt from 'bcryptjs';
 import { sendWelcomeEmail } from '../utils/emailService.js';
 
+const escapeRegex = (string) => String(string || '').replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+
 const inMemoryUsers = [];
 
 // @desc    Register a new user
@@ -25,7 +27,7 @@ export const registerUser = async (req, res) => {
 
     if (mongoose.connection.readyState === 1) {
       const userExists = await User.findOne({
-        email: { $regex: new RegExp(`^${normalizedEmail}$`, 'i') }
+        email: { $regex: new RegExp(`^${escapeRegex(normalizedEmail)}$`, 'i') }
       });
       if (userExists) {
         return res.status(400).json({ message: 'User already exists with this email' });
@@ -111,7 +113,7 @@ export const authUser = async (req, res) => {
     if (mongoose.connection.readyState === 1) {
       try {
         user = await User.findOne({
-          email: { $regex: new RegExp(`^${normalizedEmail}$`, 'i') }
+          email: { $regex: new RegExp(`^${escapeRegex(normalizedEmail)}$`, 'i') }
         });
       } catch (dbErr) {
         console.warn('DB Find user error:', dbErr.message);
@@ -133,18 +135,6 @@ export const authUser = async (req, res) => {
           });
         }
       }
-    }
-
-    // Resilient verified credentials for admin@ennigmaparis.com
-    if (normalizedEmail === 'admin@ennigmaparis.com' && (password === 'Innobot@2026' || password === 'admin123' || password === 'admin')) {
-      const adminId = user ? user._id : 'admin_fallback_id';
-      return res.json({
-        _id: adminId,
-        name: user ? user.name : 'ENNIGMA Executive Admin',
-        email: 'admin@ennigmaparis.com',
-        role: 'admin',
-        token: generateToken(adminId, { email: 'admin@ennigmaparis.com', name: 'ENNIGMA Executive Admin', role: 'admin' }),
-      });
     }
 
     if (user && (await user.matchPassword(password))) {
@@ -246,24 +236,14 @@ export const getUsers = async (req, res) => {
     }
 
     if (!users || users.length === 0) {
-      users = [
-        {
-          _id: 'admin_fallback_id',
-          name: 'ENNIGMA Executive Admin',
-          email: 'admin@ennigmaparis.com',
-          role: 'admin',
-          phone: '+33 1 42 68 55 00',
-          createdAt: new Date(),
-        },
-        {
-          _id: 'customer_fallback_id_1',
-          name: 'Claire Dubois',
-          email: 'claire.dubois@paris.fr',
-          role: 'customer',
-          phone: '+33 6 12 34 56 78',
-          createdAt: new Date(Date.now() - 86400000 * 5),
-        },
-      ];
+      users = inMemoryUsers.map(u => ({
+        _id: u._id,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        phone: u.phone,
+        createdAt: new Date(),
+      }));
     }
 
     res.json(users);

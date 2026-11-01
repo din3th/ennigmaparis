@@ -16,7 +16,9 @@ const OrderSuccess = () => {
     const fetchOrder = async () => {
       try {
         setLoading(true);
-        const { data } = await axios.get(`${API_BASE_URL}/orders/${id}`);
+        const token = localStorage.getItem('token') || localStorage.getItem('adminToken') || localStorage.getItem(`orderToken_${id}`);
+        const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+        const { data } = await axios.get(`${API_BASE_URL}/orders/${id}`, config);
         setOrder(data);
         setLoading(false);
       } catch (err) {

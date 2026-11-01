@@ -11,7 +11,7 @@ services:
       - PORT=3001
       - MONGODB_URI=mongodb://mongo:27017/ennigma
       - FRONTEND_URL=http://localhost:5174
-      - JWT_SECRET=productionsecretkeyennigmaparis2026
+      - JWT_SECRET=${JWT_SECRET:-productionsecretkeyennigmaparis2026}
     depends_on:
       - mongo
     restart: always

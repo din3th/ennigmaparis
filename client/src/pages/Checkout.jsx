@@ -249,7 +249,7 @@ const Checkout = () => {
         orderItems: cartItems,
         shippingAddress,
         paymentMethod,
-        paymentStatus: (paymentMethod === 'Stripe' || paymentMethod === 'PayHere') ? 'Completed' : 'Pending',
+        paymentStatus: 'Pending',
         paymentResult: paymentResultData,
         transferReceipt: paymentMethod === 'Bank Transfer' ? transferReceipt : null,
         itemsPrice: cartTotal,
@@ -270,6 +270,9 @@ const Checkout = () => {
       setLoading(false);
 
       const placedOrderId = response.data._id || response.data.id;
+      if (response.data.orderAccessToken) {
+        localStorage.setItem(`orderToken_${placedOrderId}`, response.data.orderAccessToken);
+      }
       navigate(`/order/${placedOrderId}`);
     } catch (err) {
       console.error(err);

@@ -2,6 +2,16 @@ import nodemailer from 'nodemailer';
 import fs from 'fs';
 import path from 'path';
 
+const escapeHtml = (unsafe) => {
+  if (unsafe === null || unsafe === undefined) return '';
+  return String(unsafe)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+};
+
 const getTransporter = async () => {
   const smtpHost = process.env.SMTP_HOST;
   const smtpUser = process.env.SMTP_USER;
@@ -114,7 +124,7 @@ export const sendOrderConfirmationEmail = async (order) => {
               </tr>
               <tr>
                 <td style="padding: 30px 0 20px 0; font-family: 'Helvetica Neue', sans-serif; font-size: 14px; color: #333; line-height: 1.6;">
-                  Dear <strong>${order.guestName || 'Valued Customer'}</strong>,<br/><br/>
+                  Dear <strong>${escapeHtml(order.guestName) || 'Valued Customer'}</strong>,<br/><br/>
                   Thank you for your order with <strong>ENNIGMA PARIS</strong>. We are preparing your order with meticulous care.
                 </td>
               </tr>
@@ -431,10 +441,10 @@ export const sendAdminOrderNotificationEmail = async (order, recipientsOverride 
                   <table width="100%" style="background-color: #f9fafb; border: 1px solid #f3f4f6; border-radius: 4px; padding: 14px; margin-bottom: 20px;">
                     <tr>
                       <td style="font-size: 12px; line-height: 1.8; color: #374151;">
-                        <strong>Customer Name:</strong> ${customerName}<br/>
-                        <strong>Phone:</strong> <a href="tel:${customerPhone}" style="color: #2563eb; text-decoration: none;">${customerPhone}</a><br/>
-                        <strong>Email:</strong> <a href="mailto:${customerEmail}" style="color: #2563eb; text-decoration: none;">${customerEmail}</a><br/>
-                        <strong>Shipping Address:</strong> ${addressFormatted || 'Not specified'}
+                        <strong>Customer Name:</strong> ${escapeHtml(customerName)}<br/>
+                        <strong>Phone:</strong> <a href="tel:${escapeHtml(customerPhone)}" style="color: #2563eb; text-decoration: none;">${escapeHtml(customerPhone)}</a><br/>
+                        <strong>Email:</strong> <a href="mailto:${escapeHtml(customerEmail)}" style="color: #2563eb; text-decoration: none;">${escapeHtml(customerEmail)}</a><br/>
+                        <strong>Shipping Address:</strong> ${escapeHtml(addressFormatted) || 'Not specified'}
                       </td>
                     </tr>
                   </table>

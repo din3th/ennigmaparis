@@ -74,5 +74,11 @@ describe('Ennigma API Endpoints', () => {
     expect(res.status).toBe(201);
     expect(res.body.sizes).toEqual(['UK 8', 'UK 10', 'UK 12', 'UK 14', 'One Size']);
   });
+
+  it('GET /api/products with special regex characters should not crash', async () => {
+    const res = await request(app).get('/api/products?search=[malformed(');
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
 });
 

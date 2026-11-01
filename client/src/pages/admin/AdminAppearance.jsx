@@ -100,7 +100,8 @@ const AdminAppearance = () => {
   const fetchAppearance = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get(`${API_BASE_URL}/appearance`);
+      const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+      const { data } = await axios.get(`${API_BASE_URL}/appearance`, config);
       if (data) {
         setFormData({
           heroBadge: data.heroBadge || '',
@@ -200,7 +201,10 @@ const AdminAppearance = () => {
 
     try {
       const { data } = await axios.post(`${API_BASE_URL}/upload/single`, uploadData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       });
       const uploadedUrl = data.image || data.images?.[0];
       setFormData((prev) => ({ ...prev, heroCoverImage: uploadedUrl }));
@@ -223,7 +227,10 @@ const AdminAppearance = () => {
     setUploading(true);
     try {
       const { data } = await axios.post(`${API_BASE_URL}/upload/single`, uploadData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       });
       const uploadedUrl = data.image || data.images?.[0];
       setFormData((prev) => ({ ...prev, promoImage: uploadedUrl }));
@@ -273,7 +280,10 @@ const AdminAppearance = () => {
     uploadData.append('image', file);
     try {
       const { data } = await axios.post(`${API_BASE_URL}/upload/single`, uploadData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       });
       const uploadedUrl = data.image || data.images?.[0];
       handleUpdateBanner(index, 'imageUrl', uploadedUrl);

@@ -1,4 +1,7 @@
+import jwt from 'jsonwebtoken';
 import Order from '../models/Order.js';
+import Product from '../models/Product.js';
+import DiscountCode from '../models/DiscountCode.js';
 import Appearance from '../models/Appearance.js';
 import { sendOrderConfirmationEmail, sendAdminOrderNotificationEmail } from '../utils/emailService.js';
 import { sendAdminOrderWhatsAppAlerts } from '../utils/whatsappService.js';
@@ -71,13 +74,9 @@ export const addOrderItems = async (req, res) => {
     orderItems,
     shippingAddress,
     paymentMethod,
-    paymentStatus,
     paymentResult,
-    itemsPrice,
     shippingPrice,
     discountCode,
-    discountAmount,
-    totalPrice,
     guestEmail,
     guestName,
     guestPhone,
@@ -91,9 +90,9 @@ export const addOrderItems = async (req, res) => {
   const formattedItems = orderItems.map((item) => ({
     product: item.product || item._id || item.id || null,
     name: item.name || item.title || 'Luxury Apparel Item',
-    qty: item.qty || 1,
+    qty: Number(item.qty) || 1,
     size: item.size || 'M',
-    price: item.price || 0,
+    price: Number(item.price) || 0,
     image: item.image || (item.images && item.images[0]) || '',
   }));
 
@@ -103,19 +102,72 @@ export const addOrderItems = async (req, res) => {
   try {
     const mongoose = (await import('mongoose')).default;
 
+    // Server-side price calculation: Validate item prices against database records
+    let calculatedItemsPrice = 0;
+    const productIds = formattedItems
+      .map((i) => i.product)
+      .filter((p) => p && mongoose.isValidObjectId(p));
+
+    let dbProducts = [];
+    if (mongoose.connection.readyState === 1 && productIds.length > 0) {
+      try {
+        dbProducts = await Product.find({ _id: { $in: productIds } });
+      } catch (e) {}
+    }
+
+    formattedItems.forEach((item) => {
+      const dbProd = dbProducts.find((p) => String(p._id) === String(item.product));
+      if (dbProd) {
+        item.price = dbProd.salePrice || dbProd.price;
+      }
+      calculatedItemsPrice += (Number(item.price) || 0) * (Number(item.qty) || 1);
+    });
+
+    // Server-side discount verification
+    let validatedDiscountAmount = 0;
+    let validatedDiscountCode = '';
+    if (discountCode && mongoose.connection.readyState === 1) {
+      try {
+        const discount = await DiscountCode.findOne({
+          code: String(discountCode).toUpperCase().trim(),
+          isActive: true,
+        });
+        if (discount) {
+          const notExpired = !discount.expiryDate || new Date(discount.expiryDate) >= new Date();
+          const withinLimit = discount.usageLimit === null || discount.usageCount < discount.usageLimit;
+          const meetsMin = !discount.minSpend || calculatedItemsPrice >= discount.minSpend;
+          if (notExpired && withinLimit && meetsMin) {
+            validatedDiscountCode = discount.code;
+            if (discount.discountType === 'percentage') {
+              validatedDiscountAmount = (calculatedItemsPrice * discount.value) / 100;
+            } else {
+              validatedDiscountAmount = discount.value;
+            }
+            validatedDiscountAmount = Math.min(validatedDiscountAmount, calculatedItemsPrice);
+          }
+        }
+      } catch (e) {}
+    }
+
+    const parsedShipping = Number(shippingPrice) || 0;
+    const validatedTotal = Math.max(0, calculatedItemsPrice + parsedShipping - validatedDiscountAmount);
+
+    // Enforce initial Pending payment status to prevent client-side payment status spoofing
+    const initialPaymentStatus = 'Pending';
+
     if (mongoose.connection.readyState === 1) {
       const order = new Order({
         items: formattedItems,
         shippingAddress: shippingAddress || { street: 'N/A', city: 'N/A', state: 'N/A', zip: '00000', country: 'Sri Lanka' },
         paymentMethod: paymentMethod || 'COD',
-        paymentStatus: paymentStatus || 'Pending',
+        paymentStatus: initialPaymentStatus,
         paymentResult,
         transferReceipt: transferReceipt || null,
-        itemsPrice: itemsPrice || totalPrice || 0,
-        shippingPrice: shippingPrice || 0,
-        discountCode: discountCode || '',
-        discountAmount: discountAmount || 0,
-        total: totalPrice || 0,
+        itemsPrice: Number(calculatedItemsPrice.toFixed(2)),
+        shippingPrice: parsedShipping,
+        discountCode: validatedDiscountCode,
+        discountAmount: Number(validatedDiscountAmount.toFixed(2)),
+        total: Number(validatedTotal.toFixed(2)),
         guestEmail,
         guestName,
         guestPhone,
@@ -123,9 +175,17 @@ export const addOrderItems = async (req, res) => {
       });
 
       const createdOrder = await order.save();
-      inMemoryOrders.unshift(createdOrder.toObject ? createdOrder.toObject() : createdOrder);
+      const orderObj = createdOrder.toObject ? createdOrder.toObject() : createdOrder;
+      inMemoryOrders.unshift(orderObj);
       triggerOrderNotifications(createdOrder);
-      return res.status(201).json(createdOrder);
+
+      const orderAccessToken = jwt.sign(
+        { orderId: createdOrder._id, email: guestEmail || (req.user && req.user.email) || '', type: 'order_access' },
+        process.env.JWT_SECRET || 'supersecretjwtkeythatshouldbechanged',
+        { expiresIn: '30d' }
+      );
+
+      return res.status(201).json({ ...orderObj, orderAccessToken });
     }
   } catch (dbErr) {
     console.warn('DB Order Save error, falling back to instant confirmation:', dbErr.message);
@@ -137,13 +197,13 @@ export const addOrderItems = async (req, res) => {
     items: formattedItems,
     shippingAddress: shippingAddress || { street: '2a De Fonseka Rd', city: 'Colombo', state: 'Western', zip: '00500', country: 'Sri Lanka' },
     paymentMethod: paymentMethod || 'COD',
-    paymentStatus: paymentStatus || 'Pending',
+    paymentStatus: 'Pending',
     transferReceipt: transferReceipt || null,
     orderStatus: 'Confirmed',
-    itemsPrice: itemsPrice || totalPrice || 0,
-    shippingPrice: shippingPrice || 0,
-    discountAmount: discountAmount || 0,
-    total: totalPrice || 0,
+    itemsPrice: 0,
+    shippingPrice: 0,
+    discountAmount: 0,
+    total: 0,
     guestEmail: guestEmail || (req.user && req.user.email) || '',
     guestName: guestName || (req.user && req.user.name) || '',
     guestPhone: guestPhone || '',
@@ -151,9 +211,15 @@ export const addOrderItems = async (req, res) => {
     createdAt: new Date(),
   };
 
+  const orderAccessToken = jwt.sign(
+    { orderId, email: fallbackOrder.guestEmail, type: 'order_access' },
+    process.env.JWT_SECRET || 'supersecretjwtkeythatshouldbechanged',
+    { expiresIn: '30d' }
+  );
+
   inMemoryOrders.unshift(fallbackOrder);
   triggerOrderNotifications(fallbackOrder);
-  res.status(201).json(fallbackOrder);
+  res.status(201).json({ ...fallbackOrder, orderAccessToken });
 };
 
 // @desc    Get logged in user orders
@@ -220,7 +286,7 @@ export const getOrders = async (req, res) => {
 
 // @desc    Get order by ID
 // @route   GET /api/orders/:id
-// @access  Public
+// @access  Protected (Admin, Order Owner, or Verified Guest Order Token)
 export const getOrderById = async (req, res) => {
   try {
     const mongoose = (await import('mongoose')).default;
@@ -239,6 +305,17 @@ export const getOrderById = async (req, res) => {
       return res.status(404).json({ message: 'Order not found' });
     }
 
+    // Verify caller authorization
+    const isAuthorized =
+      (req.user && req.user.role === 'admin') ||
+      (req.user && order.user && String(order.user._id || order.user) === String(req.user._id)) ||
+      (req.user && order.guestEmail && req.user.email && order.guestEmail.toLowerCase() === req.user.email.toLowerCase()) ||
+      (req.orderAccess && String(req.orderAccess.orderId) === String(order._id));
+
+    if (!isAuthorized) {
+      return res.status(403).json({ message: 'Not authorized to view this order' });
+    }
+
     res.json(order);
   } catch (error) {
     res.status(500).json({ message: 'Error loading order' });
@@ -247,7 +324,7 @@ export const getOrderById = async (req, res) => {
 
 // @desc    Download or View Order PDF Invoice
 // @route   GET /api/orders/:id/invoice
-// @access  Public
+// @access  Protected (Admin, Order Owner, or Verified Guest Order Token)
 export const downloadOrderInvoice = async (req, res) => {
   try {
     const mongoose = (await import('mongoose')).default;
@@ -272,6 +349,17 @@ export const downloadOrderInvoice = async (req, res) => {
 
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // Verify caller authorization
+    const isAuthorized =
+      (req.user && req.user.role === 'admin') ||
+      (req.user && order.user && String(order.user._id || order.user) === String(req.user._id)) ||
+      (req.user && order.guestEmail && req.user.email && order.guestEmail.toLowerCase() === req.user.email.toLowerCase()) ||
+      (req.orderAccess && String(req.orderAccess.orderId) === String(order._id));
+
+    if (!isAuthorized) {
+      return res.status(403).json({ message: 'Not authorized to view this invoice' });
     }
 
     const { generateInvoicePDF } = await import('../utils/pdfInvoiceGenerator.js');

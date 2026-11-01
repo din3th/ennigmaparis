@@ -5,6 +5,8 @@ import Product from '../models/Product.js';
 import Category from '../models/Category.js';
 import BackInStock from '../models/BackInStock.js';
 
+const escapeRegex = (s) => String(s || '').replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+
 let inMemoryStore = null;
 
 const getFallbackProducts = () => {
@@ -61,11 +63,10 @@ export const getProducts = async (req, res) => {
     let query = {};
 
     if (category) {
-      query.category = { $regex: new RegExp(category, 'i') };
+      query.category = { $regex: new RegExp(escapeRegex(category), 'i') };
     }
     if (subcategory) {
-      // Escape regex special chars if necessary and match loosely
-      const cleanSub = subcategory.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const cleanSub = escapeRegex(subcategory);
       query.$or = [
         { subcategory: { $regex: new RegExp(cleanSub, 'i') } },
         { category: { $regex: new RegExp(cleanSub, 'i') } },
@@ -80,17 +81,18 @@ export const getProducts = async (req, res) => {
       query.stock = { $gt: 0 };
     }
     if (color) {
-      query.colors = { $in: [new RegExp(color, 'i')] };
+      query.colors = { $in: [new RegExp(escapeRegex(color), 'i')] };
     }
     if (size) {
-      query.sizes = { $in: [new RegExp(size, 'i')] };
+      query.sizes = { $in: [new RegExp(escapeRegex(size), 'i')] };
     }
     if (search) {
+      const cleanSearch = escapeRegex(search);
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-        { category: { $regex: search, $options: 'i' } },
-        { subcategory: { $regex: search, $options: 'i' } },
+        { name: { $regex: cleanSearch, $options: 'i' } },
+        { description: { $regex: cleanSearch, $options: 'i' } },
+        { category: { $regex: cleanSearch, $options: 'i' } },
+        { subcategory: { $regex: cleanSearch, $options: 'i' } },
       ];
     }
     if (minPrice || maxPrice) {

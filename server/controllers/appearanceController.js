@@ -60,9 +60,11 @@ let inMemoryAppearance = { ...defaultAppearance };
 
 // @desc    Get website appearance settings (Hero cover, banners, announcements)
 // @route   GET /api/appearance
-// @access  Public
+// @access  Public (Sensitive executive notification settings restricted to Admins)
 export const getAppearance = async (req, res) => {
   try {
+    const isAdmin = req.user && req.user.role === 'admin';
+
     if (mongoose.connection.readyState === 1) {
       let appearance = await Appearance.findOne();
       if (!appearance) {
@@ -70,14 +72,27 @@ export const getAppearance = async (req, res) => {
         appearance = await Appearance.create(defaultAppearance);
       }
       inMemoryAppearance = appearance.toObject ? appearance.toObject() : appearance;
-      return res.json(appearance);
+      
+      const payload = { ...inMemoryAppearance };
+      if (!isAdmin) {
+        delete payload.notificationSettings;
+      }
+      return res.json(payload);
     }
 
     // Fallback when DB is reconnecting
-    res.json(inMemoryAppearance);
+    const fallbackPayload = { ...inMemoryAppearance };
+    if (!isAdmin) {
+      delete fallbackPayload.notificationSettings;
+    }
+    res.json(fallbackPayload);
   } catch (error) {
     console.error('Error fetching appearance:', error);
-    res.json(inMemoryAppearance);
+    const fallbackPayload = { ...inMemoryAppearance };
+    if (!req.user || req.user.role !== 'admin') {
+      delete fallbackPayload.notificationSettings;
+    }
+    res.json(fallbackPayload);
   }
 };
 

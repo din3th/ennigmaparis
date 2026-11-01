@@ -124,6 +124,16 @@ export const getAdminStats = async (req, res) => {
 };
 
 
+// Helper to sanitize CSV elements against CSV Formula / DDE Injection (CWE-1236)
+const sanitizeCSV = (value) => {
+  if (value === null || value === undefined) return '';
+  let str = String(value).replace(/"/g, '""');
+  if (/^[=+\-@\t\r]/.test(str)) {
+    str = `'${str}`;
+  }
+  return str;
+};
+
 // @desc    Export Orders CSV
 // @route   GET /api/admin/export/orders
 // @access  Private/Admin
@@ -133,10 +143,14 @@ export const exportOrdersCSV = async (req, res) => {
 
     let csv = 'Order ID,Customer Name,Customer Email,Payment Method,Payment Status,Order Status,Total (LKR),Date\n';
     orders.forEach((o) => {
-      const name = (o.guestName || (o.user && o.user.name) || 'Guest').replace(/,/g, '');
-      const email = (o.guestEmail || (o.user && o.user.email) || '').replace(/,/g, '');
+      const name = sanitizeCSV(o.guestName || (o.user && o.user.name) || 'Guest');
+      const email = sanitizeCSV(o.guestEmail || (o.user && o.user.email) || '');
+      const paymentMethod = sanitizeCSV(o.paymentMethod || '');
+      const paymentStatus = sanitizeCSV(o.paymentStatus || '');
+      const orderStatus = sanitizeCSV(o.orderStatus || '');
+      const total = Number(o.total) || 0;
       const date = new Date(o.createdAt).toISOString().split('T')[0];
-      csv += `${o._id},"${name}","${email}",${o.paymentMethod},${o.paymentStatus},${o.orderStatus},${o.total},${date}\n`;
+      csv += `${o._id},"${name}","${email}","${paymentMethod}","${paymentStatus}","${orderStatus}",${total},${date}\n`;
     });
 
     res.setHeader('Content-Type', 'text/csv');
@@ -156,9 +170,10 @@ export const exportCustomersCSV = async (req, res) => {
 
     let csv = 'User ID,Name,Email,Joined Date\n';
     customers.forEach((c) => {
-      const name = (c.name || '').replace(/,/g, '');
+      const name = sanitizeCSV(c.name || '');
+      const email = sanitizeCSV(c.email || '');
       const date = new Date(c.createdAt).toISOString().split('T')[0];
-      csv += `${c._id},"${name}","${c.email}",${date}\n`;
+      csv += `${c._id},"${name}","${email}",${date}\n`;
     });
 
     res.setHeader('Content-Type', 'text/csv');

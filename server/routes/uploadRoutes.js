@@ -3,6 +3,7 @@ import fs from 'fs';
 import express from 'express';
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
+import { protect, admin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -170,7 +171,7 @@ router.post('/receipt', (req, res) => {
 
 // @route   POST /api/upload
 // @desc    Upload multiple product images to Cloudinary permanent CDN or disk
-router.post('/', uploadImage.array('images', 10), async (req, res) => {
+router.post('/', protect, admin, uploadImage.array('images', 10), async (req, res) => {
   const files = req.files || (req.file ? [req.file] : []);
 
   if (files.length === 0) {
@@ -211,7 +212,7 @@ router.post('/', uploadImage.array('images', 10), async (req, res) => {
 
 // @route   POST /api/upload/single
 // @desc    Upload single image
-router.post('/single', uploadImage.single('image'), async (req, res) => {
+router.post('/single', protect, admin, uploadImage.single('image'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: 'No image file uploaded' });
   }
