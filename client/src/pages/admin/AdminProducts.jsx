@@ -48,6 +48,7 @@ const AdminProducts = () => {
   const [editCustomSizeInput, setEditCustomSizeInput] = useState('');
   const [editImageUrlInput, setEditImageUrlInput] = useState('');
   const [updatingProduct, setUpdatingProduct] = useState(false);
+  const [editUploading, setEditUploading] = useState(false);
 
   const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
 
@@ -210,6 +211,7 @@ const AdminProducts = () => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
+    const currentToken = localStorage.getItem('adminToken') || localStorage.getItem('token');
     const formData = new FormData();
     for (let i = 0; i < files.length; i++) {
       formData.append('images', files[i]);
@@ -218,15 +220,55 @@ const AdminProducts = () => {
     setUploading(true);
 
     try {
-      const config = { headers: { 'Content-Type': 'multipart/form-data' } };
+      const config = {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          ...(currentToken ? { Authorization: `Bearer ${currentToken}` } : {}),
+        },
+      };
       const { data } = await axios.post(`${API_BASE_URL}/upload`, formData, config);
-      const newUploaded = data.images || [data.image];
+      const newUploaded = data.images || (data.image ? [data.image] : []);
       setImages((prev) => [...prev, ...newUploaded]);
       setUploading(false);
     } catch (error) {
-      console.error(error);
+      console.error('Image upload failed:', error.response?.data || error);
       setUploading(false);
-      alert('Failed to upload image(s)');
+      const msg = error.response?.data?.message || 'Failed to upload image(s)';
+      alert(msg);
+    }
+  };
+
+  const uploadEditFileHandler = async (e) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const currentToken = localStorage.getItem('adminToken') || localStorage.getItem('token');
+    const formData = new FormData();
+    for (let i = 0; i < files.length; i++) {
+      formData.append('images', files[i]);
+    }
+
+    setEditUploading(true);
+
+    try {
+      const config = {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          ...(currentToken ? { Authorization: `Bearer ${currentToken}` } : {}),
+        },
+      };
+      const { data } = await axios.post(`${API_BASE_URL}/upload`, formData, config);
+      const newUploaded = data.images || (data.image ? [data.image] : []);
+      setEditFormData((prev) => ({
+        ...prev,
+        images: [...(prev.images || []), ...newUploaded],
+      }));
+      setEditUploading(false);
+    } catch (error) {
+      console.error('Edit image upload failed:', error.response?.data || error);
+      setEditUploading(false);
+      const msg = error.response?.data?.message || 'Failed to upload image(s)';
+      alert(msg);
     }
   };
 
@@ -915,28 +957,38 @@ const AdminProducts = () => {
                 )}
               </div>
 
-              {/* Add Image URL */}
-              <div className="sm:col-span-2">
-                <label className="block font-medium text-gray-700 mb-1">Add Image URL</label>
+              {/* Product Gallery Images (Upload or URL) */}
+              <div className="sm:col-span-2 space-y-2">
+                <label className="block font-medium text-gray-700 mb-1">Product Images (Upload or Add URL)</label>
                 <div className="flex gap-2">
+                  <input 
+                    type="file" 
+                    multiple 
+                    accept="image/*" 
+                    className="w-full border border-gray-200 p-2 text-xs" 
+                    onChange={uploadEditFileHandler} 
+                  />
+                </div>
+                {editUploading && <p className="text-[11px] text-gray-400">Uploading image files...</p>}
+                <div className="flex gap-2 pt-1">
                   <input
                     type="url"
-                    placeholder="https://..."
+                    placeholder="Or paste image URL (https://...)"
                     value={editImageUrlInput}
                     onChange={(e) => setEditImageUrlInput(e.target.value)}
-                    className="flex-1 border border-gray-200 p-2.5 rounded-sm focus:border-black focus:outline-none"
+                    className="flex-1 border border-gray-200 p-2 text-xs focus:border-black focus:outline-none"
                   />
                   <button
                     type="button"
                     onClick={() => {
                       if (editImageUrlInput) {
-                        setEditFormData({ ...editFormData, images: [...editFormData.images, editImageUrlInput] });
+                        setEditFormData({ ...editFormData, images: [...(editFormData.images || []), editImageUrlInput] });
                         setEditImageUrlInput('');
                       }
                     }}
-                    className="bg-gray-100 hover:bg-black hover:text-white px-4 py-2 font-bold uppercase tracking-wider rounded-sm transition-colors cursor-pointer"
+                    className="bg-gray-100 hover:bg-black hover:text-white px-4 py-2 font-bold uppercase tracking-wider rounded-sm transition-colors cursor-pointer text-xs"
                   >
-                    + Add
+                    + Add URL
                   </button>
                 </div>
 

@@ -2,14 +2,18 @@ import path from 'path';
 import fs from 'fs';
 import express from 'express';
 import multer from 'multer';
+import { fileURLToPath } from 'url';
 import { v2 as cloudinary } from 'cloudinary';
 import { protect, admin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 // Determine if running on serverless (e.g. Vercel)
 const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
-const uploadsDir = isServerless ? path.join('/tmp', 'uploads') : path.join(process.cwd(), 'uploads');
+const uploadsDir = isServerless ? path.join('/tmp', 'uploads') : path.join(__dirname, '..', 'uploads');
 
 try {
   if (!fs.existsSync(uploadsDir)) {
@@ -43,14 +47,15 @@ if (isCloudinaryConfigured) {
 const memoryStorage = multer.memoryStorage();
 
 function checkImageFileType(file, cb) {
-  const filetypes = /jpg|jpeg|png|webp|gif|avif/;
-  const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+  const filetypes = /jpg|jpeg|png|webp|gif|avif|bmp|tiff|heic|svg/;
+  const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
+  const extMatches = filetypes.test(ext);
   const mimetype = filetypes.test(file.mimetype) || file.mimetype.startsWith('image/');
 
-  if (extname && mimetype) {
+  if (extMatches || mimetype) {
     return cb(null, true);
   }
-  cb(new Error('Images only (JPG, PNG, WEBP, GIF)!'));
+  cb(new Error('Images only (JPG, PNG, WEBP, GIF, AVIF)!'));
 }
 
 const uploadImage = multer({
@@ -63,10 +68,11 @@ const uploadImage = multer({
 
 function checkReceiptFileType(file, cb) {
   const allowedExts = /pdf|jpg|jpeg|png|webp/;
-  const extname = allowedExts.test(path.extname(file.originalname).toLowerCase());
+  const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
+  const extMatches = allowedExts.test(ext);
   const isPdfOrImage = file.mimetype === 'application/pdf' || file.mimetype.startsWith('image/');
 
-  if (extname && isPdfOrImage) {
+  if (extMatches || isPdfOrImage) {
     return cb(null, true);
   }
   cb(new Error('Only PDF documents or image files (JPG, PNG, WEBP) are allowed!'));
@@ -104,6 +110,13 @@ const uploadStreamToCloudinary = (buffer, options = {}) => {
  * Helper to save buffer to local disk /tmp
  */
 const saveToLocalDisk = (file, prefix = 'image') => {
+  try {
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+  } catch (e) {
+    // ignore
+  }
   const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
   const cleanBase = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9_-]/g, '_');
   const filename = `${prefix}-${Date.now()}-${cleanBase}${ext}`;
@@ -171,79 +184,95 @@ router.post('/receipt', (req, res) => {
 
 // @route   POST /api/upload
 // @desc    Upload multiple product images to Cloudinary permanent CDN or disk
-router.post('/', protect, admin, uploadImage.array('images', 10), async (req, res) => {
-  const files = req.files || (req.file ? [req.file] : []);
+router.post('/', protect, admin, (req, res) => {
+  uploadImage.array('images', 10)(req, res, async (err) => {
+    if (err instanceof multer.MulterError) {
+      return res.status(400).json({ message: `Upload error: ${err.message}` });
+    } else if (err) {
+      return res.status(400).json({ message: err.message || 'Invalid file format.' });
+    }
 
-  if (files.length === 0) {
-    return res.status(400).json({ message: 'No image files provided' });
-  }
+    const files = req.files || (req.file ? [req.file] : []);
 
-  try {
-    const imageUrls = await Promise.all(
-      files.map(async (file) => {
-        if (isCloudinaryConfigured) {
-          try {
-            const cloudResult = await uploadStreamToCloudinary(file.buffer, {
-              folder: 'ennigma/catalog',
-              resourceType: 'image',
-            });
-            return cloudResult.secure_url;
-          } catch (cloudErr) {
-            console.warn('Cloudinary upload failed for item, using disk fallback:', cloudErr.message);
+    if (files.length === 0) {
+      return res.status(400).json({ message: 'No image files provided' });
+    }
+
+    try {
+      const imageUrls = await Promise.all(
+        files.map(async (file) => {
+          if (isCloudinaryConfigured) {
+            try {
+              const cloudResult = await uploadStreamToCloudinary(file.buffer, {
+                folder: 'ennigma/catalog',
+                resourceType: 'image',
+              });
+              return cloudResult.secure_url;
+            } catch (cloudErr) {
+              console.warn('Cloudinary upload failed for item, using disk fallback:', cloudErr.message);
+              return saveToLocalDisk(file, 'product');
+            }
+          } else {
             return saveToLocalDisk(file, 'product');
           }
-        } else {
-          return saveToLocalDisk(file, 'product');
-        }
-      })
-    );
+        })
+      );
 
-    res.json({
-      message: `${imageUrls.length} Image(s) Uploaded Successfully`,
-      image: imageUrls[0],
-      images: imageUrls,
-      cdn: isCloudinaryConfigured ? 'Cloudinary CDN' : 'Local Storage',
-    });
-  } catch (error) {
-    console.error('Image batch upload error:', error);
-    res.status(500).json({ message: 'Failed to process image uploads' });
-  }
+      res.json({
+        message: `${imageUrls.length} Image(s) Uploaded Successfully`,
+        image: imageUrls[0],
+        images: imageUrls,
+        cdn: isCloudinaryConfigured ? 'Cloudinary CDN' : 'Local Storage',
+      });
+    } catch (error) {
+      console.error('Image batch upload error:', error);
+      res.status(500).json({ message: 'Failed to process image uploads' });
+    }
+  });
 });
 
 // @route   POST /api/upload/single
 // @desc    Upload single image
-router.post('/single', protect, admin, uploadImage.single('image'), async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ message: 'No image file uploaded' });
-  }
-
-  try {
-    let imageUrl = '';
-    if (isCloudinaryConfigured) {
-      try {
-        const cloudResult = await uploadStreamToCloudinary(req.file.buffer, {
-          folder: 'ennigma/catalog',
-          resourceType: 'image',
-        });
-        imageUrl = cloudResult.secure_url;
-      } catch (cloudErr) {
-        console.warn('Cloudinary upload failed for single image, using disk fallback:', cloudErr.message);
-        imageUrl = saveToLocalDisk(req.file, 'single');
-      }
-    } else {
-      imageUrl = saveToLocalDisk(req.file, 'single');
+router.post('/single', protect, admin, (req, res) => {
+  uploadImage.single('image')(req, res, async (err) => {
+    if (err instanceof multer.MulterError) {
+      return res.status(400).json({ message: `Upload error: ${err.message}` });
+    } else if (err) {
+      return res.status(400).json({ message: err.message || 'Invalid file format.' });
     }
 
-    res.json({
-      message: 'Image Uploaded Successfully',
-      image: imageUrl,
-      images: [imageUrl],
-      cdn: isCloudinaryConfigured ? 'Cloudinary CDN' : 'Local Storage',
-    });
-  } catch (error) {
-    console.error('Single image upload error:', error);
-    res.status(500).json({ message: 'Failed to upload image' });
-  }
+    if (!req.file) {
+      return res.status(400).json({ message: 'No image file uploaded' });
+    }
+
+    try {
+      let imageUrl = '';
+      if (isCloudinaryConfigured) {
+        try {
+          const cloudResult = await uploadStreamToCloudinary(req.file.buffer, {
+            folder: 'ennigma/catalog',
+            resourceType: 'image',
+          });
+          imageUrl = cloudResult.secure_url;
+        } catch (cloudErr) {
+          console.warn('Cloudinary upload failed for single image, using disk fallback:', cloudErr.message);
+          imageUrl = saveToLocalDisk(req.file, 'single');
+        }
+      } else {
+        imageUrl = saveToLocalDisk(req.file, 'single');
+      }
+
+      res.json({
+        message: 'Image Uploaded Successfully',
+        image: imageUrl,
+        images: [imageUrl],
+        cdn: isCloudinaryConfigured ? 'Cloudinary CDN' : 'Local Storage',
+      });
+    } catch (error) {
+      console.error('Single image upload error:', error);
+      res.status(500).json({ message: 'Failed to upload image' });
+    }
+  });
 });
 
 export default router;

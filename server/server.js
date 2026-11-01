@@ -3,8 +3,13 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
@@ -67,8 +72,23 @@ import { connectDB, dbMiddleware } from './config/db.js';
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-const uploadsDir = process.env.VERCEL ? path.join('/tmp', 'uploads') : path.join(process.cwd(), 'uploads');
+const uploadsDir = process.env.VERCEL ? path.join('/tmp', 'uploads') : path.join(__dirname, 'uploads');
+try {
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+} catch (e) {
+  console.warn('[Uploads Directory Init]:', e.message);
+}
 app.use('/uploads', express.static(uploadsDir));
+
+// Also serve fallback root uploads if it exists
+if (!process.env.VERCEL) {
+  const rootUploads = path.join(process.cwd(), 'uploads');
+  if (rootUploads !== uploadsDir && fs.existsSync(rootUploads)) {
+    app.use('/uploads', express.static(rootUploads));
+  }
+}
 
 // Ensure DB is connected before any API route executes (critical for Vercel serverless cold-starts)
 app.use('/api', dbMiddleware);
