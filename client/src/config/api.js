@@ -9,24 +9,30 @@ export const API_BASE_URL = '/api';
 
 export const BACKEND_URL = '';
 
+export const DEFAULT_PLACEHOLDER = 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=800&auto=format&fit=crop';
+
 /**
  * Resolves an image URL safely across local and production environments.
  * Strips localhost:3001 so images are always fetched as relative /uploads paths through Vite proxy or Vercel rewrite.
  */
 export const resolveImageUrl = (imgUrl) => {
-  if (!imgUrl) return '/placeholder.jpg';
+  if (!imgUrl || typeof imgUrl !== 'string') return DEFAULT_PLACEHOLDER;
   
-  if (imgUrl.includes('localhost:3001/uploads')) {
-    return imgUrl.replace(/^https?:\/\/localhost:3001/, '');
+  if (imgUrl.includes('localhost:3001/uploads') || imgUrl.includes('127.0.0.1:3001/uploads')) {
+    return imgUrl.replace(/^https?:\/\/(localhost|127\.0\.0\.1):3001/, '');
   }
 
   if (imgUrl.startsWith('http://') || imgUrl.startsWith('https://') || imgUrl.startsWith('data:')) {
     return imgUrl;
   }
 
+  if (imgUrl.startsWith('uploads/')) {
+    return '/' + imgUrl;
+  }
+
   if (imgUrl.startsWith('/uploads')) {
     return imgUrl;
   }
 
-  return imgUrl;
+  return imgUrl || DEFAULT_PLACEHOLDER;
 };

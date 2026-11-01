@@ -207,10 +207,6 @@ const MainLayout = () => {
                         <Link to="/orders" className="block px-4 py-2 text-xs uppercase font-bold text-gray-500 hover:bg-gray-100">
                           Order Lookup
                         </Link>
-                        <div className="border-t border-gray-100 my-1"></div>
-                        <Link to="/admin/login" className="block px-4 py-2 text-[10px] uppercase font-bold text-gray-400 hover:text-black hover:bg-gray-50">
-                          Admin Portal Login
-                        </Link>
                       </>
                     )}
                   </div>

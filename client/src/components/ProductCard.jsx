@@ -38,14 +38,16 @@ const ProductCard = ({ product }) => {
       <div className="relative aspect-[4/5] overflow-hidden bg-gray-100 mb-4 rounded-sm">
         <Link to={`/shop/${product.slug || product.handle || product._id}`}>
           <img 
-            src={resolveImageUrl(product.images && product.images[0] ? product.images[0] : '/placeholder.jpg')}
+            src={resolveImageUrl(product.images && product.images[0] ? product.images[0] : '')}
             alt={product.title || product.name}
+            onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=800&auto=format&fit=crop'; }}
             className="object-cover w-full h-full transform group-hover:scale-105 transition-transform duration-700"
           />
           {product.images && product.images[1] && (
             <img 
               src={resolveImageUrl(product.images[1])}
               alt={product.title || product.name}
+              onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=800&auto=format&fit=crop'; }}
               className="absolute inset-0 object-cover w-full h-full opacity-0 group-hover:opacity-100 transition-opacity duration-700"
             />
           )}

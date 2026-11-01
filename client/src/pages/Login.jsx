@@ -31,10 +31,12 @@ const Login = () => {
       if (data.role === 'admin') {
         localStorage.setItem('adminToken', data.token);
         localStorage.setItem('adminInfo', JSON.stringify(data));
+        navigate('/admin');
+        window.location.reload();
+      } else {
+        navigate('/');
+        window.location.reload();
       }
-
-      navigate('/');
-      window.location.reload();
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid email or password');
     } finally {
@@ -122,18 +124,11 @@ const Login = () => {
           </button>
 
           {/* Register Link */}
-          <div className="text-center pt-4 border-t border-gray-100 space-y-2">
-            <div>
-              <span className="text-xs text-gray-500">Don't have an account yet? </span>
-              <Link to="/register" className="text-xs font-bold text-black hover:underline uppercase tracking-wider ml-1">
-                Create One
-              </Link>
-            </div>
-            <div>
-              <Link to="/admin/login" className="text-[10px] text-gray-400 hover:text-black uppercase tracking-wider">
-                Admin Portal Login →
-              </Link>
-            </div>
+          <div className="text-center pt-4 border-t border-gray-100">
+            <span className="text-xs text-gray-500">Don't have an account yet? </span>
+            <Link to="/register" className="text-xs font-bold text-black hover:underline uppercase tracking-wider ml-1">
+              Create One
+            </Link>
           </div>
         </form>
       </div>

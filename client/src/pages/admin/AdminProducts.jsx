@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 
-import { API_BASE_URL } from '../../config/api';
+import { API_BASE_URL, resolveImageUrl } from '../../config/api';
 
 const PRESET_SIZES = [
   'UK 4', 'UK 6', 'UK 8', 'UK 10', 'UK 12', 'UK 14', 'UK 16', 'UK 18',
@@ -531,7 +531,7 @@ const AdminProducts = () => {
                   <div className="flex flex-wrap gap-3">
                     {images.map((img, idx) => (
                       <div key={idx} className="relative group w-16 h-20 bg-gray-100 border border-gray-200 rounded-sm overflow-hidden">
-                        <img src={img} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover" />
+                        <img src={resolveImageUrl(img)} alt={`Preview ${idx + 1}`} onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=800&auto=format&fit=crop'; }} className="w-full h-full object-cover" />
                         <button
                           type="button"
                           onClick={() => handleRemoveImage(idx)}
@@ -619,8 +619,9 @@ const AdminProducts = () => {
                       <td className="py-3 px-4">
                         <div className="flex items-center space-x-3">
                           <img 
-                            src={p.images && p.images[0] ? p.images[0] : '/placeholder.jpg'} 
+                            src={resolveImageUrl(p.images && p.images[0] ? p.images[0] : '')} 
                             alt={p.name} 
+                            onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=800&auto=format&fit=crop'; }}
                             className="w-12 h-14 object-cover border border-gray-200 rounded-sm bg-gray-50" 
                           />
                           <div>
@@ -944,7 +945,7 @@ const AdminProducts = () => {
                   <div className="flex flex-wrap gap-2 mt-3">
                     {editFormData.images.map((img, idx) => (
                       <div key={idx} className="relative w-14 h-18 bg-gray-100 border border-gray-200 rounded-sm overflow-hidden">
-                        <img src={img} alt="Thumb" className="w-full h-full object-cover" />
+                        <img src={resolveImageUrl(img)} alt="Thumb" onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=800&auto=format&fit=crop'; }} className="w-full h-full object-cover" />
                         <button
                           type="button"
                           onClick={() => {

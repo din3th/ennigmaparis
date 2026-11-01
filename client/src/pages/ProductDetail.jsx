@@ -132,8 +132,9 @@ const ProductDetail = () => {
         <div className="flex flex-col space-y-4">
           <div className="aspect-[3/4] w-full bg-gray-100 overflow-hidden relative rounded-sm">
             <img 
-              src={resolveImageUrl(product.images && product.images[0] ? product.images[0] : '/placeholder.jpg')} 
+              src={resolveImageUrl(product.images && product.images[0] ? product.images[0] : '')} 
               alt={product.name} 
+              onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=800&auto=format&fit=crop'; }}
               className="object-cover w-full h-full"
             />
             {product.stock === 0 && (
@@ -146,7 +147,7 @@ const ProductDetail = () => {
             <div className="grid grid-cols-2 gap-4">
               {product.images.slice(1).map((img, idx) => (
                 <div key={idx} className="aspect-[3/4] bg-gray-100 overflow-hidden rounded-sm">
-                  <img src={resolveImageUrl(img)} alt="Detail view" className="object-cover w-full h-full" />
+                  <img src={resolveImageUrl(img)} alt="Detail view" onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=800&auto=format&fit=crop'; }} className="object-cover w-full h-full" />
                 </div>
               ))}
             </div>
