@@ -5,6 +5,7 @@ import multer from 'multer';
 import { fileURLToPath } from 'url';
 import { v2 as cloudinary } from 'cloudinary';
 import { protect, admin } from '../middleware/authMiddleware.js';
+import Media from '../models/Media.js';
 
 const router = express.Router();
 
@@ -107,9 +108,9 @@ const uploadStreamToCloudinary = (buffer, options = {}) => {
 };
 
 /**
- * Helper to save buffer to local disk /tmp
+ * Helper to save buffer to local disk /tmp and persist to MongoDB Atlas
  */
-const saveToLocalDisk = (file, prefix = 'image') => {
+const saveToLocalDisk = async (file, prefix = 'image') => {
   try {
     if (!fs.existsSync(uploadsDir)) {
       fs.mkdirSync(uploadsDir, { recursive: true });
@@ -121,7 +122,40 @@ const saveToLocalDisk = (file, prefix = 'image') => {
   const cleanBase = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9_-]/g, '_');
   const filename = `${prefix}-${Date.now()}-${cleanBase}${ext}`;
   const targetPath = path.join(uploadsDir, filename);
-  fs.writeFileSync(targetPath, file.buffer);
+
+  try {
+    fs.writeFileSync(targetPath, file.buffer);
+  } catch (diskErr) {
+    console.warn('[Disk Write Warning]:', diskErr.message);
+  }
+
+  // Persist to MongoDB Atlas so the image is immediately accessible on Vercel and elsewhere
+  try {
+    const mimeMap = {
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.png': 'image/png',
+      '.webp': 'image/webp',
+      '.gif': 'image/gif',
+      '.pdf': 'application/pdf',
+      '.avif': 'image/avif',
+    };
+    await Media.updateOne(
+      { filename },
+      {
+        $set: {
+          filename,
+          contentType: file.mimetype || mimeMap[ext] || 'image/jpeg',
+          data: file.buffer,
+          size: file.size || file.buffer.length,
+        },
+      },
+      { upsert: true }
+    );
+  } catch (mongoErr) {
+    console.error('Failed to save media to MongoDB Atlas:', mongoErr.message);
+  }
+
   return `/uploads/${filename}`;
 };
 
@@ -161,10 +195,10 @@ router.post('/receipt', (req, res) => {
           fileUrl = cloudResult.secure_url;
         } catch (cloudErr) {
           console.warn('Cloudinary upload warning (falling back to disk):', cloudErr.message);
-          fileUrl = saveToLocalDisk(req.file, 'receipt');
+          fileUrl = await saveToLocalDisk(req.file, 'receipt');
         }
       } else {
-        fileUrl = saveToLocalDisk(req.file, 'receipt');
+        fileUrl = await saveToLocalDisk(req.file, 'receipt');
       }
 
       res.json({
@@ -210,10 +244,10 @@ router.post('/', protect, admin, (req, res) => {
               return cloudResult.secure_url;
             } catch (cloudErr) {
               console.warn('Cloudinary upload failed for item, using disk fallback:', cloudErr.message);
-              return saveToLocalDisk(file, 'product');
+              return await saveToLocalDisk(file, 'product');
             }
           } else {
-            return saveToLocalDisk(file, 'product');
+            return await saveToLocalDisk(file, 'product');
           }
         })
       );
@@ -256,10 +290,10 @@ router.post('/single', protect, admin, (req, res) => {
           imageUrl = cloudResult.secure_url;
         } catch (cloudErr) {
           console.warn('Cloudinary upload failed for single image, using disk fallback:', cloudErr.message);
-          imageUrl = saveToLocalDisk(req.file, 'single');
+          imageUrl = await saveToLocalDisk(req.file, 'single');
         }
       } else {
-        imageUrl = saveToLocalDisk(req.file, 'single');
+        imageUrl = await saveToLocalDisk(req.file, 'single');
       }
 
       res.json({

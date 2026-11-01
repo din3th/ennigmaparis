@@ -7,6 +7,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import Media from './models/Media.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -89,6 +90,28 @@ if (!process.env.VERCEL) {
     app.use('/uploads', express.static(rootUploads));
   }
 }
+
+// Resilient Fallback Image Serving: If file is not present on disk (such as on Vercel serverless), serve from MongoDB Atlas
+app.get(/^\/uploads\/(.+)$/, dbMiddleware, async (req, res, next) => {
+  try {
+    const rawParam = req.params[0] || req.path;
+    const filename = path.basename(rawParam);
+    const media = await Media.findOne({ filename });
+    if (!media) {
+      return res.status(404).json({ message: 'File not found' });
+    }
+    res.set({
+      'Content-Type': media.contentType || 'image/jpeg',
+      'Content-Length': media.size || media.data.length,
+      'Cache-Control': 'public, max-age=31536000, immutable',
+      'Cross-Origin-Resource-Policy': 'cross-origin',
+    });
+    return res.end(media.data);
+  } catch (err) {
+    console.error('Error fetching media from MongoDB:', err);
+    return res.status(500).json({ message: 'Error retrieving file' });
+  }
+});
 
 // Ensure DB is connected before any API route executes (critical for Vercel serverless cold-starts)
 app.use('/api', dbMiddleware);
