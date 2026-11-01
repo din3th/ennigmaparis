@@ -139,25 +139,67 @@ const sanitizeCSV = (value) => {
 // @access  Private/Admin
 export const exportOrdersCSV = async (req, res) => {
   try {
-    const orders = await Order.find({}).sort({ createdAt: -1 }).populate('user', 'name email');
+    const orders = await Order.find({}).sort({ createdAt: -1 }).populate('user', 'name email phone');
 
-    let csv = 'Order ID,Customer Name,Customer Email,Payment Method,Payment Status,Order Status,Total (LKR),Date\n';
+    let csv = 'Order ID,Customer Name,Customer Email,Customer Phone,Delivery Street,City,Country,Payment Method,Payment Status,Order Status,Total (LKR),Tracking Number,Carrier,Payment Slip Attached,Date\n';
     orders.forEach((o) => {
       const name = sanitizeCSV(o.guestName || (o.user && o.user.name) || 'Guest');
       const email = sanitizeCSV(o.guestEmail || (o.user && o.user.email) || '');
+      const phone = sanitizeCSV(o.guestPhone || (o.user && o.user.phone) || '');
+      const street = sanitizeCSV(o.shippingAddress?.street || '');
+      const city = sanitizeCSV(o.shippingAddress?.city || '');
+      const country = sanitizeCSV(o.shippingAddress?.country || 'Sri Lanka');
       const paymentMethod = sanitizeCSV(o.paymentMethod || '');
       const paymentStatus = sanitizeCSV(o.paymentStatus || '');
       const orderStatus = sanitizeCSV(o.orderStatus || '');
       const total = Number(o.total) || 0;
+      const tracking = sanitizeCSV(o.trackingNumber || '');
+      const carrier = sanitizeCSV(o.carrier || '');
+      const hasSlip = o.transferReceipt ? 'YES' : 'NO';
       const date = new Date(o.createdAt).toISOString().split('T')[0];
-      csv += `${o._id},"${name}","${email}","${paymentMethod}","${paymentStatus}","${orderStatus}",${total},${date}\n`;
+
+      csv += `${o._id},"${name}","${email}","${phone}","${street}","${city}","${country}","${paymentMethod}","${paymentStatus}","${orderStatus}",${total},"${tracking}","${carrier}","${hasSlip}",${date}\n`;
     });
 
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename=orders-export.csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=ennigma-orders-export.csv');
     res.status(200).send(csv);
   } catch (error) {
+    console.error('Failed to export orders CSV:', error);
     res.status(500).json({ message: 'Failed to export orders CSV' });
+  }
+};
+
+// @desc    Export Payment Confirmations & Verification Report CSV
+// @route   GET /api/admin/export/payments
+// @access  Private/Admin
+export const exportPaymentsCSV = async (req, res) => {
+  try {
+    const orders = await Order.find({}).sort({ createdAt: -1 }).populate('user', 'name email phone');
+
+    let csv = 'Order ID,Customer Name,Customer Email,Customer Phone,Payment Method,Payment Status,Total Amount (LKR),Order Status,Slip Filename,Slip URL,Slip Upload Date,Order Date\n';
+    orders.forEach((o) => {
+      const name = sanitizeCSV(o.guestName || (o.user && o.user.name) || 'Guest');
+      const email = sanitizeCSV(o.guestEmail || (o.user && o.user.email) || '');
+      const phone = sanitizeCSV(o.guestPhone || (o.user && o.user.phone) || '');
+      const paymentMethod = sanitizeCSV(o.paymentMethod || 'Unknown');
+      const paymentStatus = sanitizeCSV(o.paymentStatus || 'Pending');
+      const total = Number(o.total) || 0;
+      const orderStatus = sanitizeCSV(o.orderStatus || '');
+      const slipFilename = sanitizeCSV(o.transferReceipt?.originalName || o.transferReceipt?.filename || 'N/A');
+      const slipUrl = sanitizeCSV(o.transferReceipt?.url || 'N/A');
+      const slipUploadDate = o.transferReceipt?.uploadedAt ? new Date(o.transferReceipt.uploadedAt).toISOString().split('T')[0] : 'N/A';
+      const orderDate = new Date(o.createdAt).toISOString().split('T')[0];
+
+      csv += `${o._id},"${name}","${email}","${phone}","${paymentMethod}","${paymentStatus}",${total},"${orderStatus}","${slipFilename}","${slipUrl}","${slipUploadDate}",${orderDate}\n`;
+    });
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=ennigma-payment-confirmations.csv');
+    res.status(200).send(csv);
+  } catch (error) {
+    console.error('Failed to export payments report CSV:', error);
+    res.status(500).json({ message: 'Failed to export payments CSV' });
   }
 };
 

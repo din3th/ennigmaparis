@@ -92,13 +92,36 @@ export const protectOrderAccess = async (req, res, next) => {
       }
 
       if (decoded.id) {
-        const mongoose = (await import('mongoose')).default;
-        if (mongoose.connection.readyState === 1) {
-          const foundUser = await User.findById(decoded.id).select('-passwordHash');
-          if (foundUser) {
-            req.user = foundUser;
-            return next();
+        try {
+          const mongoose = (await import('mongoose')).default;
+          if (mongoose.connection.readyState === 1) {
+            const foundUser = await User.findById(decoded.id).select('-passwordHash');
+            if (foundUser) {
+              req.user = foundUser;
+              return next();
+            }
           }
+        } catch (dbErr) {
+          console.warn('DB lookup in protectOrderAccess:', dbErr.message);
+        }
+
+        // Cryptographically verified admin payload fallback
+        if (decoded.role === 'admin') {
+          req.user = {
+            _id: decoded.id,
+            role: 'admin',
+            email: decoded.email,
+            name: decoded.name || 'Admin',
+          };
+          return next();
+        } else if (decoded.email) {
+          req.user = {
+            _id: decoded.id,
+            role: decoded.role || 'customer',
+            email: decoded.email,
+            name: decoded.name,
+          };
+          return next();
         }
       }
     } catch (err) {

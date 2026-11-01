@@ -119,6 +119,44 @@ const AdminOrders = () => {
     }
   };
 
+  const handleExportPaymentsCSV = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/admin/export/payments`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'ennigma-payment-confirmations.csv');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      alert('Failed to export payment confirmations report');
+    }
+  };
+
+  const handleDownloadSlip = async (receipt) => {
+    if (!receipt || !receipt.url) return;
+    try {
+      const targetUrl = getReceiptUrl(receipt.url);
+      const res = await fetch(targetUrl);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = receipt.originalName || receipt.filename || 'payment-slip';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+    } catch (e) {
+      window.open(getReceiptUrl(receipt.url), '_blank');
+    }
+  };
+
   const handleOpenInvoice = (orderId) => {
     openInvoicePDF(orderId);
   };
@@ -134,14 +172,22 @@ const AdminOrders = () => {
           <span className="text-xs uppercase tracking-widest text-gray-400 font-bold">Fulfillment Center</span>
           <h1 className="text-2xl font-serif tracking-tight text-gray-900 mt-1">Order Status & Dispatch</h1>
         </div>
-        <div className="flex items-center space-x-4">
+        <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={handleExportCSV}
-            className="bg-black text-white px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-sm hover:bg-gray-800 transition-colors cursor-pointer"
+            className="bg-black text-white px-3.5 py-2 text-xs font-bold uppercase tracking-wider rounded-sm hover:bg-gray-800 transition-colors cursor-pointer flex items-center gap-1.5"
+            title="Export all orders with addresses, courier and fulfillment details"
           >
-            Export Orders CSV
+            <Download size={13} /> Export Orders CSV
           </button>
-          <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{orders.length} Total Orders</span>
+          <button
+            onClick={handleExportPaymentsCSV}
+            className="bg-amber-900 text-white px-3.5 py-2 text-xs font-bold uppercase tracking-wider rounded-sm hover:bg-amber-800 transition-colors cursor-pointer flex items-center gap-1.5"
+            title="Export payment confirmation report including bank slip URLs and verification statuses"
+          >
+            <Building2 size={13} /> Export Payment Report
+          </button>
+          <span className="text-xs font-bold text-gray-500 uppercase tracking-widest hidden sm:inline">{orders.length} Total Orders</span>
         </div>
       </div>
       
@@ -375,15 +421,22 @@ const AdminOrders = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                    <div className="flex flex-wrap items-center gap-2 self-end sm:self-auto">
                       <a
                         href={getReceiptUrl(selectedOrder.transferReceipt.url)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 bg-black text-white px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-xs hover:bg-gray-800 transition-colors shadow-xs cursor-pointer"
+                        className="inline-flex items-center gap-1.5 bg-black text-white px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-xs hover:bg-gray-800 transition-colors shadow-xs cursor-pointer"
                       >
-                        <Eye size={13} /> View / Read Slip
+                        <Eye size={13} /> View Slip
                       </a>
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadSlip(selectedOrder.transferReceipt)}
+                        className="inline-flex items-center gap-1.5 bg-white border border-gray-300 text-gray-800 px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-xs hover:bg-black hover:text-white hover:border-black transition-colors shadow-xs cursor-pointer"
+                      >
+                        <Download size={13} /> Download Slip
+                      </button>
                     </div>
                   </div>
 

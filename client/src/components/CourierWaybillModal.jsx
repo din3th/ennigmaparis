@@ -23,7 +23,95 @@ const CourierWaybillModal = ({ isOpen, onClose, order }) => {
   const isPaid = order.paymentStatus === 'Completed';
 
   const handlePrint = () => {
-    window.print();
+    const content = printAreaRef.current;
+    if (!content) {
+      window.print();
+      return;
+    }
+
+    const existingIframe = document.getElementById('waybill-print-iframe');
+    if (existingIframe) {
+      existingIframe.remove();
+    }
+
+    const iframe = document.createElement('iframe');
+    iframe.id = 'waybill-print-iframe';
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Waybill - ${waybillNo}</title>
+          <style>
+            @page {
+              size: A4 portrait;
+              margin: 8mm;
+            }
+            * {
+              box-sizing: border-box;
+              margin: 0;
+              padding: 0;
+            }
+            html, body {
+              background: #ffffff !important;
+              color: #000000 !important;
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            body {
+              padding: 4px;
+            }
+            .waybill-print-root {
+              width: 100%;
+              max-width: 190mm;
+              margin: 0 auto;
+            }
+            table {
+              border-collapse: collapse;
+              width: 100%;
+            }
+            tr {
+              page-break-inside: avoid;
+            }
+          </style>
+          ${Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+            .map((el) => el.outerHTML)
+            .join('\n')}
+        </head>
+        <body>
+          <div class="waybill-print-root">
+            ${content.outerHTML}
+          </div>
+        </body>
+      </html>
+    `);
+    doc.close();
+
+    setTimeout(() => {
+      try {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      } catch (err) {
+        console.warn('Iframe print failed, falling back to window.print():', err);
+        window.print();
+      } finally {
+        setTimeout(() => {
+          if (iframe && iframe.parentNode) {
+            iframe.parentNode.removeChild(iframe);
+          }
+        }, 2000);
+      }
+    }, 300);
   };
 
   return (
@@ -31,6 +119,13 @@ const CourierWaybillModal = ({ isOpen, onClose, order }) => {
       {/* Print-specific style */}
       <style>{`
         @media print {
+          html, body {
+            height: auto !important;
+            overflow: visible !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+          }
           body * {
             visibility: hidden !important;
           }
@@ -38,14 +133,16 @@ const CourierWaybillModal = ({ isOpen, onClose, order }) => {
             visibility: visible !important;
           }
           #printable-waybill-content {
-            position: absolute !important;
+            position: fixed !important;
             left: 0 !important;
             top: 0 !important;
             width: 100% !important;
             margin: 0 !important;
-            padding: 20px !important;
+            padding: 12px !important;
             box-shadow: none !important;
             border: 2px solid #000 !important;
+            z-index: 9999999 !important;
+            background: #ffffff !important;
           }
           .no-print {
             display: none !important;
