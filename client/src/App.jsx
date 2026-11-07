@@ -1,32 +1,40 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
 // Layouts
 import MainLayout from './layouts/MainLayout';
-import AdminLayout from './layouts/AdminLayout';
 
 // Pages
 import Home from './pages/Home';
 import Shop from './pages/Shop';
 import ProductDetail from './pages/ProductDetail';
 import Cart from './pages/Cart';
-import Checkout from './pages/Checkout';
-import OrderSuccess from './pages/OrderSuccess';
-import Orders from './pages/Orders';
-import Profile from './pages/Profile';
-import WishlistPage from './pages/WishlistPage';
-import Register from './pages/Register';
-import Login from './pages/Login';
-import About from './pages/About';
-import ShippingReturns from './pages/ShippingReturns';
-import TermsPolicy from './pages/TermsPolicy';
 
-// Admin Pages
-import AdminDashboard from './pages/admin/Dashboard';
-import AdminLogin from './pages/admin/AdminLogin';
-import AdminAppearance from './pages/admin/AdminAppearance';
-import AdminProducts from './pages/admin/AdminProducts';
-import AdminOrders from './pages/admin/AdminOrders';
-import AdminUsers from './pages/admin/AdminUsers';
+// Admin pages and less-visited pages are split into separate chunks so
+// shoppers never download the admin bundle (and recharts).
+const AdminLayout = lazy(() => import('./layouts/AdminLayout'));
+const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
+const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'));
+const AdminAppearance = lazy(() => import('./pages/admin/AdminAppearance'));
+const AdminProducts = lazy(() => import('./pages/admin/AdminProducts'));
+const AdminOrders = lazy(() => import('./pages/admin/AdminOrders'));
+const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'));
+const Checkout = lazy(() => import('./pages/Checkout'));
+const OrderSuccess = lazy(() => import('./pages/OrderSuccess'));
+const Orders = lazy(() => import('./pages/Orders'));
+const Profile = lazy(() => import('./pages/Profile'));
+const WishlistPage = lazy(() => import('./pages/WishlistPage'));
+const Register = lazy(() => import('./pages/Register'));
+const Login = lazy(() => import('./pages/Login'));
+const About = lazy(() => import('./pages/About'));
+const ShippingReturns = lazy(() => import('./pages/ShippingReturns'));
+const TermsPolicy = lazy(() => import('./pages/TermsPolicy'));
+
+const PageFallback = () => (
+  <div className="min-h-[60vh] flex items-center justify-center" role="status" aria-label="Loading">
+    <div className="w-8 h-8 border-2 border-black border-t-transparent rounded-full animate-spin" />
+  </div>
+);
 
 import { CartProvider } from './context/CartContext';
 import { WishlistProvider } from './context/WishlistContext';
@@ -36,6 +44,7 @@ function App() {
     <CartProvider>
       <WishlistProvider>
         <Router>
+          <Suspense fallback={<PageFallback />}>
           <Routes>
             <Route element={<MainLayout />}>
               <Route path="/" element={<Home />} />
@@ -64,6 +73,7 @@ function App() {
               <Route path="users" element={<AdminUsers />} />
             </Route>
           </Routes>
+          </Suspense>
         </Router>
       </WishlistProvider>
     </CartProvider>

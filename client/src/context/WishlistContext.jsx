@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
+import { getCurrentUser } from '../utils/auth';
 
 const WishlistContext = createContext();
 
@@ -27,13 +28,11 @@ export const WishlistProvider = ({ children }) => {
     }
 
     // Synchronize with server if logged in
-    const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
-    if (token && productId) {
+    if (getCurrentUser() && productId) {
       try {
         await axios.post(
           `${API_BASE_URL}/wishlist/toggle`,
-          { productId },
-          { headers: { Authorization: `Bearer ${token}` } }
+          { productId }
         );
       } catch (err) {
         // Silent catch for resilient offline or non-blocking operation

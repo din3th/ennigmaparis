@@ -1,6 +1,7 @@
 import express from 'express';
 import {
   authUser,
+  logoutUser,
   getUserProfile,
   updateUserProfile,
   registerUser,
@@ -9,24 +10,20 @@ import {
   deleteUser,
 } from '../controllers/userController.js';
 import { protect, admin } from '../middleware/authMiddleware.js';
+import { validateBody, schemas } from '../middleware/validate.js';
+import { authLimiter } from '../middleware/rateLimiters.js';
 
 const router = express.Router();
 
-router.post('/register', registerUser);
-router.post('/login', authUser);
+router.post('/register', authLimiter, validateBody(schemas.register), registerUser);
+router.post('/login', authLimiter, validateBody(schemas.login), authUser);
+router.post('/logout', logoutUser);
 router.route('/profile')
   .get(protect, getUserProfile)
-  .put(protect, updateUserProfile);
+  .put(protect, validateBody(schemas.updateProfile), updateUserProfile);
 
-// Admin user management routes
-router.route('/')
-  .get(protect, admin, getUsers);
-
-router.route('/:id/role')
-  .put(protect, admin, updateUserRole);
-
-router.route('/:id')
-  .delete(protect, admin, deleteUser);
+router.get('/', protect, admin, getUsers);
+router.put('/:id/role', protect, admin, validateBody(schemas.role), updateUserRole);
+router.delete('/:id', protect, admin, deleteUser);
 
 export default router;
-

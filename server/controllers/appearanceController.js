@@ -1,4 +1,3 @@
-import mongoose from 'mongoose';
 import Appearance from '../models/Appearance.js';
 import { sendAdminOrderNotificationEmail } from '../utils/emailService.js';
 import { sendAdminOrderWhatsAppAlerts, sendWhatsAppMessage, formatOrderWhatsAppMessage } from '../utils/whatsappService.js';
@@ -14,7 +13,6 @@ const defaultAppearance = {
   heroButtonLink: '/shop?collection=the-calm-edit',
   banners: [
     {
-      _id: 'banner_1',
       title: 'THE CALM EDIT',
       subtitle: 'Spring / Summer Haute Couture',
       description: 'A destination for timeless Parisian elegance and confident luxury.',
@@ -24,7 +22,6 @@ const defaultAppearance = {
       active: true,
     },
     {
-      _id: 'banner_2',
       title: 'EVENING SILHOUETTES',
       subtitle: 'New Season Capsule',
       description: 'Sculpted draping and bespoke tailoring designed for extraordinary moments.',
@@ -56,79 +53,36 @@ const defaultAppearance = {
   },
 };
 
-let inMemoryAppearance = { ...defaultAppearance };
+const stripPrivate = (doc, isAdmin) => {
+  const payload = doc.toObject ? doc.toObject() : { ...doc };
+  if (!isAdmin) delete payload.notificationSettings;
+  return payload;
+};
 
 // @desc    Get website appearance settings (Hero cover, banners, announcements)
 // @route   GET /api/appearance
-// @access  Public (Sensitive executive notification settings restricted to Admins)
+// @access  Public (notification settings restricted to admins)
 export const getAppearance = async (req, res) => {
-  try {
-    const isAdmin = req.user && req.user.role === 'admin';
-
-    if (mongoose.connection.readyState === 1) {
-      let appearance = await Appearance.findOne();
-      if (!appearance) {
-        // Create initial default document in database
-        appearance = await Appearance.create(defaultAppearance);
-      }
-      inMemoryAppearance = appearance.toObject ? appearance.toObject() : appearance;
-      
-      const payload = { ...inMemoryAppearance };
-      if (!isAdmin) {
-        delete payload.notificationSettings;
-      }
-      return res.json(payload);
-    }
-
-    // Fallback when DB is reconnecting
-    const fallbackPayload = { ...inMemoryAppearance };
-    if (!isAdmin) {
-      delete fallbackPayload.notificationSettings;
-    }
-    res.json(fallbackPayload);
-  } catch (error) {
-    console.error('Error fetching appearance:', error);
-    const fallbackPayload = { ...inMemoryAppearance };
-    if (!req.user || req.user.role !== 'admin') {
-      delete fallbackPayload.notificationSettings;
-    }
-    res.json(fallbackPayload);
+  let appearance = await Appearance.findOne();
+  if (!appearance) {
+    appearance = await Appearance.create(defaultAppearance);
   }
+  res.json(stripPrivate(appearance, req.user?.role === 'admin'));
 };
 
 // @desc    Update website appearance settings
 // @route   PUT /api/appearance
 // @access  Private/Admin
 export const updateAppearance = async (req, res) => {
-  try {
-    const updateData = { ...req.body };
-
-    // Update in-memory fallback
-    inMemoryAppearance = {
-      ...inMemoryAppearance,
-      ...updateData,
-    };
-
-    if (mongoose.connection.readyState === 1) {
-      let appearance = await Appearance.findOne();
-      if (!appearance) {
-        appearance = new Appearance(updateData);
-      } else {
-        Object.assign(appearance, updateData);
-      }
-      const savedAppearance = await appearance.save();
-      inMemoryAppearance = savedAppearance.toObject();
-      return res.json(savedAppearance);
-    }
-
-    res.json({
-      ...inMemoryAppearance,
-      _resilientNotice: 'Saved to session store (syncing with database on next connection)',
-    });
-  } catch (error) {
-    console.error('Error updating appearance:', error);
-    res.status(500).json({ message: 'Server error updating appearance' });
+  const { _id, __v, createdAt, updatedAt, ...updateData } = req.body || {};
+  let appearance = await Appearance.findOne();
+  if (!appearance) {
+    appearance = new Appearance(updateData);
+  } else {
+    appearance.set(updateData);
   }
+  const saved = await appearance.save();
+  res.json(stripPrivate(saved, true));
 };
 
 // @desc    Dispatch test email and WhatsApp alerts to verify notification settings

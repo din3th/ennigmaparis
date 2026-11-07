@@ -1,16 +1,16 @@
 import { Outlet, Link, Navigate, useNavigate } from 'react-router-dom';
+import { isAdminUser, signOut } from '../utils/auth';
 
 const AdminLayout = () => {
-  const token = localStorage.getItem('adminToken');
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    localStorage.removeItem('adminToken');
-    localStorage.removeItem('adminInfo');
+  const handleLogout = async () => {
+    await signOut();
     navigate('/admin/login');
   };
 
-  if (!token) {
+  // UI guard only; every admin API call is authorized on the server.
+  if (!isAdminUser()) {
     return <Navigate to="/admin/login" replace />;
   }
 

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Mail, Lock, ArrowRight } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
+import { setCurrentUser } from '../utils/auth';
 
 
 const Login = () => {
@@ -24,13 +25,10 @@ const Login = () => {
         password,
       });
 
-      // Store credentials
-      localStorage.setItem('userInfo', JSON.stringify(data));
-      localStorage.setItem('token', data.token);
+      // The session cookie is set by the server; keep only the public profile.
+      setCurrentUser(data);
 
       if (data.role === 'admin') {
-        localStorage.setItem('adminToken', data.token);
-        localStorage.setItem('adminInfo', JSON.stringify(data));
         navigate('/admin');
         window.location.reload();
       } else {

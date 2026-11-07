@@ -1,17 +1,21 @@
 import express from 'express';
 import {
-  createStripeIntent,
-  generatePayHereHash,
-  confirmCodOrder,
+  createStripeCheckoutSession,
   handleStripeWebhook,
+  createPayHereCheckout,
+  handlePayHereNotify,
 } from '../controllers/paymentController.js';
+import { protectOrderAccess } from '../middleware/authMiddleware.js';
+import { validateBody, schemas } from '../middleware/validate.js';
+import { paymentLimiter } from '../middleware/rateLimiters.js';
 
 const router = express.Router();
 
-router.post('/stripe/create-intent', createStripeIntent);
-router.post('/payhere/hash', generatePayHereHash);
-router.post('/cod/confirm', confirmCodOrder);
-router.post('/webhook', express.raw({ type: 'application/json' }), handleStripeWebhook);
+router.post('/stripe/checkout-session', paymentLimiter, protectOrderAccess, validateBody(schemas.orderIdBody), createStripeCheckoutSession);
+router.post('/payhere/checkout', paymentLimiter, protectOrderAccess, validateBody(schemas.orderIdBody), createPayHereCheckout);
+
+// Gateway callbacks: authenticated by signature, not by session.
+router.post('/webhook', handleStripeWebhook);
+router.post('/payhere/notify', handlePayHereNotify);
 
 export default router;
-

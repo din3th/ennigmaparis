@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import axios from 'axios';
 import ProductCard from '../components/ProductCard';
-import { API_BASE_URL, resolveImageUrl } from '../config/api';
+import { resolveImageUrl } from '../config/api';
+import { useApiQuery, useAppearance } from '../hooks/useApi';
 
 const defaultHeroFallback = {
   heroBadge: 'Spring / Summer Haute Couture',
@@ -24,37 +24,11 @@ const defaultHeroFallback = {
 };
 
 const Home = () => {
-  const [featuredProducts, setFeaturedProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [appearance, setAppearance] = useState(defaultHeroFallback);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [prodRes, appRes] = await Promise.allSettled([
-          axios.get(`${API_BASE_URL}/products`),
-          axios.get(`${API_BASE_URL}/appearance`),
-        ]);
-
-        if (prodRes.status === 'fulfilled' && prodRes.value.data) {
-          setFeaturedProducts(prodRes.value.data.slice(0, 4));
-        }
-
-        if (appRes.status === 'fulfilled' && appRes.value.data) {
-          setAppearance({
-            ...defaultHeroFallback,
-            ...appRes.value.data,
-          });
-        }
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching home data:', error);
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+  const { data: products, isLoading: loading } = useApiQuery(['products', 'all'], '/products');
+  const { data: appearanceData } = useAppearance();
+  const featuredProducts = (products || []).slice(0, 4);
+  const appearance = { ...defaultHeroFallback, ...(appearanceData || {}) };
 
   // Filter active slides if configured
   const activeBanners = (appearance.banners || []).filter((b) => b.active !== false);

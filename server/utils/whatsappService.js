@@ -23,7 +23,7 @@ export const formatOrderWhatsAppMessage = (order) => {
     ? `${address.street || ''}, ${address.city || ''}, ${address.state || ''}`.replace(/^, |, $/g, '')
     : 'Not provided';
 
-  const receiptNotice = order.transferReceipt ? `\n📎 *Bank Receipt:* Uploaded (Ready for verification in Admin)` : '';
+  const receiptNotice = order.transferReceipt?.url ? `\n📎 *Bank Receipt:* Uploaded (Ready for verification in Admin)` : '';
 
   return `🛍️ *NEW ORDER ALERT - ENNIGMA PARIS*\n` +
     `━━━━━━━━━━━━━━━━━━━━━━\n` +
