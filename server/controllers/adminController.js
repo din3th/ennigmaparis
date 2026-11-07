@@ -3,124 +3,60 @@ import Product from '../models/Product.js';
 import User from '../models/User.js';
 import Newsletter from '../models/Newsletter.js';
 import { sendOrderStatusUpdateEmail } from '../utils/emailService.js';
+import { restoreStock } from '../services/orderService.js';
+import { HttpError } from '../middleware/errorHandler.js';
+import logger from '../utils/logger.js';
 
-// @desc    Get Admin Dashboard Stats Overview with Chart Trends
-// @route   GET /api/admin/stats
-// @access  Private/Admin
 // @desc    Get Admin Dashboard Stats Overview with Chart Trends
 // @route   GET /api/admin/stats
 // @access  Private/Admin
 export const getAdminStats = async (req, res) => {
-  try {
-    const mongoose = (await import('mongoose')).default;
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+  sixMonthsAgo.setDate(1);
+  sixMonthsAgo.setHours(0, 0, 0, 0);
 
-    if (mongoose.connection.readyState === 1) {
-      try {
-        const totalOrders = await Order.countDocuments({});
-        const totalProducts = await Product.countDocuments({});
-        const totalCustomers = await User.countDocuments({ role: 'customer' });
+  const [
+    totalOrders, totalProducts, totalCustomers, revenueAgg, outOfStockProducts,
+    pendingOrdersCount, recentOrders, monthlyAgg, categoryAgg,
+  ] = await Promise.all([
+    Order.countDocuments({}),
+    Product.countDocuments({}),
+    User.countDocuments({ role: 'customer' }),
+    Order.aggregate([{ $match: { paymentStatus: 'Completed' } }, { $group: { _id: null, total: { $sum: '$total' } } }]),
+    Product.countDocuments({ stock: { $lte: 0 } }),
+    Order.countDocuments({ orderStatus: 'Pending' }),
+    Order.find({}).sort({ createdAt: -1 }).limit(5).populate('user', 'name email'),
+    Order.aggregate([
+      { $match: { createdAt: { $gte: sixMonthsAgo }, orderStatus: { $ne: 'Cancelled' } } },
+      { $group: { _id: { y: { $year: '$createdAt' }, m: { $month: '$createdAt' } }, revenue: { $sum: '$total' } } },
+    ]),
+    Product.aggregate([{ $group: { _id: { $ifNull: ['$category', 'Other'] }, value: { $sum: 1 } } }]),
+  ]);
 
-        const orders = await Order.find({ paymentStatus: 'Completed' });
-        const totalRevenue = orders.reduce((sum, order) => sum + (order.total || 0), 0);
-
-        const outOfStockProducts = await Product.countDocuments({ stock: { $lte: 0 } });
-        const pendingOrdersCount = await Order.countDocuments({ orderStatus: 'Pending' });
-
-        const recentOrders = await Order.find({})
-          .sort({ createdAt: -1 })
-          .limit(5)
-          .populate('user', 'name email');
-
-        const sixMonthsAgo = new Date();
-        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
-        sixMonthsAgo.setDate(1);
-
-        const allOrders = await Order.find({ createdAt: { $gte: sixMonthsAgo } });
-
-        const monthsMap = {};
-        for (let i = 5; i >= 0; i--) {
-          const d = new Date();
-          d.setMonth(d.getMonth() - i);
-          const monthKey = d.toLocaleString('default', { month: 'short' });
-          monthsMap[monthKey] = 0;
-        }
-
-        allOrders.forEach((o) => {
-          const monthKey = new Date(o.createdAt).toLocaleString('default', { month: 'short' });
-          if (monthsMap[monthKey] !== undefined) {
-            monthsMap[monthKey] += (o.total || 0);
-          }
-        });
-
-        const monthlyRevenue = Object.keys(monthsMap).map((month) => ({
-          month,
-          revenue: Number(monthsMap[month].toFixed(2)),
-        }));
-
-        const allProducts = await Product.find({});
-        const categoryCount = {};
-        allProducts.forEach((p) => {
-          const cat = p.category || 'Other';
-          categoryCount[cat] = (categoryCount[cat] || 0) + 1;
-        });
-
-        const categoryBreakdown = Object.keys(categoryCount).map((name) => ({
-          name,
-          value: categoryCount[name],
-        }));
-
-        return res.json({
-          totalRevenue: Number(totalRevenue.toFixed(2)),
-          totalOrders,
-          totalProducts,
-          totalCustomers,
-          outOfStockProducts,
-          pendingOrdersCount,
-          recentOrders,
-          monthlyRevenue,
-          categoryBreakdown,
-        });
-      } catch (dbErr) {
-        console.warn('DB Stats error (using fallback stats):', dbErr.message);
-      }
-    }
-
-    // Default Fallback Stats
-    res.json({
-      totalRevenue: 285400,
-      totalOrders: 24,
-      totalProducts: 15,
-      totalCustomers: 18,
-      outOfStockProducts: 1,
-      pendingOrdersCount: 3,
-      recentOrders: [
-        {
-          _id: '65e123456789abcdef000001',
-          guestName: 'Madame Sophie Laurent',
-          guestEmail: 'sophie.laurent@paris.fr',
-          total: 12500,
-          orderStatus: 'Processing',
-          createdAt: new Date(),
-        },
-      ],
-      monthlyRevenue: [
-        { month: 'Apr', revenue: 32000 },
-        { month: 'May', revenue: 45000 },
-        { month: 'Jun', revenue: 38000 },
-        { month: 'Jul', revenue: 52000 },
-        { month: 'Aug', revenue: 61000 },
-        { month: 'Sep', revenue: 57400 },
-      ],
-      categoryBreakdown: [
-        { name: 'Dresses', value: 8 },
-        { name: 'Tops', value: 4 },
-        { name: 'Trousers', value: 3 },
-      ],
+  const monthlyRevenue = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(1);
+    d.setMonth(d.getMonth() - i);
+    const hit = monthlyAgg.find((r) => r._id.y === d.getFullYear() && r._id.m === d.getMonth() + 1);
+    monthlyRevenue.push({
+      month: d.toLocaleString('en-US', { month: 'short' }),
+      revenue: Number((hit?.revenue || 0).toFixed(2)),
     });
-  } catch (error) {
-    console.error('Error fetching admin stats:', error);
-    res.status(500).json({ message: 'Error loading admin statistics' });
   }
+
+  res.json({
+    totalRevenue: Number((revenueAgg[0]?.total || 0).toFixed(2)),
+    totalOrders,
+    totalProducts,
+    totalCustomers,
+    outOfStockProducts,
+    pendingOrdersCount,
+    recentOrders,
+    monthlyRevenue,
+    categoryBreakdown: categoryAgg.map((c) => ({ name: c._id, value: c.value })),
+  });
 };
 
 
@@ -155,7 +91,7 @@ export const exportOrdersCSV = async (req, res) => {
       const total = Number(o.total) || 0;
       const tracking = sanitizeCSV(o.trackingNumber || '');
       const carrier = sanitizeCSV(o.carrier || '');
-      const hasSlip = o.transferReceipt ? 'YES' : 'NO';
+      const hasSlip = o.transferReceipt?.url ? 'YES' : 'NO';
       const date = new Date(o.createdAt).toISOString().split('T')[0];
 
       csv += `${o._id},"${name}","${email}","${phone}","${street}","${city}","${country}","${paymentMethod}","${paymentStatus}","${orderStatus}",${total},"${tracking}","${carrier}","${hasSlip}",${date}\n`;
@@ -233,49 +169,45 @@ export const exportCustomersCSV = async (req, res) => {
 export const updateOrderStatus = async (req, res) => {
   const { orderStatus, paymentStatus, trackingNumber, carrier, trackingUrl, dispatchNote } = req.body;
 
-  try {
-    const mongoose = (await import('mongoose')).default;
-    let order = null;
+  const order = await Order.findById(req.params.id).populate('user', 'name email');
+  if (!order) throw new HttpError(404, 'Order not found');
 
-    if (mongoose.connection.readyState === 1) {
-      try {
-        if (mongoose.isValidObjectId(req.params.id)) {
-          order = await Order.findById(req.params.id).populate('user', 'name email');
-        } else {
-          order = await Order.findOne({ _id: req.params.id }).populate('user', 'name email');
-        }
-      } catch (dbErr) {}
-    }
+  const previousStatus = order.orderStatus;
+  const previousPayment = order.paymentStatus;
+  if (orderStatus) order.orderStatus = orderStatus;
+  if (paymentStatus) order.paymentStatus = paymentStatus;
+  if (trackingNumber !== undefined) order.trackingNumber = trackingNumber;
+  if (carrier !== undefined) order.carrier = carrier;
+  if (trackingUrl !== undefined) order.trackingUrl = trackingUrl;
+  if (dispatchNote !== undefined) order.dispatchNote = dispatchNote;
 
-    if (order) {
-      const previousStatus = order.orderStatus;
-      if (orderStatus) order.orderStatus = orderStatus;
-      if (paymentStatus) order.paymentStatus = paymentStatus;
-      if (trackingNumber !== undefined) order.trackingNumber = trackingNumber;
-      if (carrier !== undefined) order.carrier = carrier;
-      if (trackingUrl !== undefined) order.trackingUrl = trackingUrl;
-      if (dispatchNote !== undefined) order.dispatchNote = dispatchNote;
-
-      const updatedOrder = await order.save();
-
-      // Trigger automatic status update email to customer if status changed
-      if (orderStatus && orderStatus !== previousStatus) {
-        sendOrderStatusUpdateEmail(updatedOrder, previousStatus, orderStatus, {
-          trackingNumber: updatedOrder.trackingNumber,
-          carrier: updatedOrder.carrier,
-          trackingUrl: updatedOrder.trackingUrl,
-          dispatchNote: updatedOrder.dispatchNote,
-        }).catch((err) => console.error('Automated status email error:', err.message));
-      }
-
-      return res.json(updatedOrder);
-    }
-
-    res.status(404).json({ message: 'Order not found' });
-  } catch (error) {
-    console.error('Update order status error:', error);
-    res.status(500).json({ message: 'Error updating order status' });
+  // Cancelling returns the reserved stock (once).
+  if (order.orderStatus === 'Cancelled' && previousStatus !== 'Cancelled' && !order.stockRestored) {
+    await restoreStock(order.items);
+    order.stockRestored = true;
   }
+
+  if (order.orderStatus !== previousStatus || order.paymentStatus !== previousPayment) {
+    order.statusHistory.push({
+      orderStatus: order.orderStatus,
+      paymentStatus: order.paymentStatus,
+      note: dispatchNote || undefined,
+      changedBy: req.user._id,
+    });
+  }
+
+  const updatedOrder = await order.save();
+
+  if (orderStatus && orderStatus !== previousStatus) {
+    sendOrderStatusUpdateEmail(updatedOrder, previousStatus, orderStatus, {
+      trackingNumber: updatedOrder.trackingNumber,
+      carrier: updatedOrder.carrier,
+      trackingUrl: updatedOrder.trackingUrl,
+      dispatchNote: updatedOrder.dispatchNote,
+    }).catch((err) => logger.error('Order status email failed', { err }));
+  }
+
+  res.json(updatedOrder);
 };
 
 // @desc    Newsletter subscription signup
@@ -283,19 +215,9 @@ export const updateOrderStatus = async (req, res) => {
 // @access  Public
 export const subscribeNewsletter = async (req, res) => {
   const { email } = req.body;
-  if (!email) {
-    return res.status(400).json({ message: 'Email is required' });
+  const result = await Newsletter.updateOne({ email }, { $setOnInsert: { email } }, { upsert: true });
+  if (result.upsertedCount === 0) {
+    return res.status(200).json({ message: 'You are already subscribed to the ENNIGMA newsletter.' });
   }
-
-  try {
-    const existing = await Newsletter.findOne({ email: email.toLowerCase() });
-    if (existing) {
-      return res.status(200).json({ message: 'You are already subscribed to the ENNIGMA newsletter.' });
-    }
-
-    await Newsletter.create({ email: email.toLowerCase() });
-    res.status(201).json({ message: 'Welcome to ENNIGMA PARIS newsletter! Check your inbox for exclusive updates.' });
-  } catch (error) {
-    res.status(500).json({ message: 'Subscription failed' });
-  }
+  res.status(201).json({ message: 'Welcome to ENNIGMA PARIS newsletter! Check your inbox for exclusive updates.' });
 };

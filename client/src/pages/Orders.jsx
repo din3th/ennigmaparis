@@ -1,44 +1,18 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { Package, Download, Eye, ArrowRight, ShieldCheck, Clock, ExternalLink, Printer } from 'lucide-react';
-import { API_BASE_URL } from '../config/api';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Package, Download, Eye, Printer } from 'lucide-react';
+import { useApiQuery } from '../hooks/useApi';
 import { downloadInvoicePDF, openInvoicePDF } from '../utils/invoiceService';
+import { getCurrentUser } from '../utils/auth';
 
 const Orders = () => {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState(null);
-  const [error, setError] = useState(null);
-  const navigate = useNavigate();
 
-  const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
-  const storedUser = localStorage.getItem('userInfo');
-  const currentUser = storedUser ? JSON.parse(storedUser) : null;
-
-  useEffect(() => {
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-
-    const fetchMyOrders = async () => {
-      try {
-        setLoading(true);
-        const { data } = await axios.get(`${API_BASE_URL}/orders/myorders`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setOrders(data);
-        setLoading(false);
-      } catch (err) {
-        console.error('Failed to load user orders:', err);
-        setError('Could not retrieve orders. Please check your network or try logging in again.');
-        setLoading(false);
-      }
-    };
-
-    fetchMyOrders();
-  }, [token]);
+  const currentUser = getCurrentUser();
+  const token = currentUser?._id;
+  const { data: orders = [], isLoading, error: queryError } = useApiQuery(['orders', 'mine'], '/orders/myorders', { enabled: Boolean(token) });
+  const loading = Boolean(token) && isLoading;
+  const error = queryError ? 'Could not retrieve orders. Please check your network or try signing in again.' : null;
 
   const handleOpenInvoice = (orderId, e) => {
     if (e) e.stopPropagation();

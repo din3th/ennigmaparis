@@ -18,11 +18,8 @@ const AdminUsers = () => {
   const fetchUsers = async () => {
     setLoading(true);
     setError('');
-    const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
     try {
-      const { data } = await axios.get(`${API_BASE_URL}/users`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const { data } = await axios.get(`${API_BASE_URL}/users`);
       setUsers(data);
     } catch (err) {
       console.error(err);
@@ -33,12 +30,10 @@ const AdminUsers = () => {
   };
 
   const handleRoleChange = async (userId, newRole) => {
-    const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
     try {
       await axios.put(
         `${API_BASE_URL}/users/${userId}/role`,
-        { role: newRole },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { role: newRole }
       );
       setActionMsg({ type: 'success', text: `User role successfully updated to ${newRole}` });
       fetchUsers();
@@ -53,11 +48,8 @@ const AdminUsers = () => {
       return;
     }
 
-    const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
     try {
-      await axios.delete(`${API_BASE_URL}/users/${userId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.delete(`${API_BASE_URL}/users/${userId}`);
       setActionMsg({ type: 'success', text: `User "${userName}" has been deleted.` });
       fetchUsers();
       setTimeout(() => setActionMsg(null), 3000);
@@ -87,10 +79,9 @@ const AdminUsers = () => {
   }
 
   const handleExportCSV = async () => {
-    const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
     try {
       const response = await axios.get(`${API_BASE_URL}/admin/export/customers`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { },
         responseType: 'blob',
       });
       const url = window.URL.createObjectURL(new Blob([response.data]));

@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import logger from '../utils/logger.js';
 
 /**
  * Global connection cache for serverless environments (Vercel / Netlify / AWS Lambda).
@@ -19,7 +20,7 @@ export const connectDB = async () => {
   const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
 
   if (!MONGODB_URI) {
-    console.error('❌ [Database Warning] MONGODB_URI is not set in environment variables! Data cannot sync across hosted and local.');
+    logger.error('MONGODB_URI is not set; the API cannot serve requests');
     return null;
   }
 
@@ -31,11 +32,11 @@ export const connectDB = async () => {
     };
 
     cached.promise = mongoose.connect(MONGODB_URI, opts).then((m) => {
-      console.log('✅ Connected to MongoDB Atlas Cluster');
+      logger.info('Connected to MongoDB');
       return m;
     }).catch((err) => {
       cached.promise = null;
-      console.error('❌ [MongoDB Atlas Connection Failed]:', err.message);
+      logger.error('MongoDB connection failed', { err });
       throw err;
     });
   }
@@ -50,16 +51,19 @@ export const connectDB = async () => {
 };
 
 /**
- * Express middleware to ensure database connection is established before route handler executes.
- * Eliminates the serverless cold-start race condition on Vercel.
+ * Express middleware to ensure the database is connected before a route runs.
+ * Fails with 503 instead of letting handlers fall back to fake in-memory data.
  */
 export const dbMiddleware = async (req, res, next) => {
-  try {
-    if (mongoose.connection.readyState !== 1) {
+  if (mongoose.connection.readyState !== 1) {
+    try {
       await connectDB();
+    } catch {
+      // handled below
     }
-  } catch (err) {
-    console.warn('[DB Middleware Warning]:', err.message);
+  }
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({ message: 'Service temporarily unavailable. Please try again shortly.' });
   }
   next();
 };

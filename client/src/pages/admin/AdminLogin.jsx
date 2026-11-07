@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_BASE_URL } from '../../config/api';
+import { setCurrentUser, signOut } from '../../utils/auth';
 
 const AdminLogin = () => {
   const [email, setEmail] = useState('');
@@ -17,10 +18,10 @@ const AdminLogin = () => {
         password,
       });
       if (data.role === 'admin') {
-        localStorage.setItem('adminToken', data.token);
-        localStorage.setItem('adminInfo', JSON.stringify(data));
+        setCurrentUser(data);
         navigate('/admin');
       } else {
+        await signOut();
         setError('Access denied. Admin role required.');
       }
     } catch (err) {

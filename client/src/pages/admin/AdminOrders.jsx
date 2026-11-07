@@ -25,14 +25,11 @@ const AdminOrders = () => {
   const [waybillOrder, setWaybillOrder] = useState(null);
   const [confirmationNotice, setConfirmationNotice] = useState(null);
 
-  const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get(`${API_BASE_URL}/orders`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const { data } = await axios.get(`${API_BASE_URL}/orders`);
       setOrders(data);
       setLoading(false);
     } catch (err) {
@@ -57,8 +54,7 @@ const AdminOrders = () => {
     try {
       await axios.put(
         `${API_BASE_URL}/admin/orders/${orderId}/status`,
-        { orderStatus: newOrderStatus, paymentStatus: newPaymentStatus },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { orderStatus: newOrderStatus, paymentStatus: newPaymentStatus }
       );
       if (selectedOrder && selectedOrder._id === orderId) {
         setSelectedOrder({
@@ -81,8 +77,7 @@ const AdminOrders = () => {
     try {
       await axios.put(
         `${API_BASE_URL}/admin/orders/${orderId}/status`,
-        { paymentStatus: 'Completed', orderStatus: 'Processing' },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { paymentStatus: 'Completed', orderStatus: 'Processing' }
       );
       if (selectedOrder && selectedOrder._id === orderId) {
         setSelectedOrder({
@@ -104,7 +99,7 @@ const AdminOrders = () => {
   const handleExportCSV = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/admin/export/orders`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { },
         responseType: 'blob',
       });
       const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -122,7 +117,7 @@ const AdminOrders = () => {
   const handleExportPaymentsCSV = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/admin/export/payments`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { },
         responseType: 'blob',
       });
       const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -365,7 +360,7 @@ const AdminOrders = () => {
               </div>
 
               {/* Fund Transfer Confirmation Slip Section */}
-              {selectedOrder.transferReceipt ? (
+              {selectedOrder.transferReceipt?.url ? (
                 <div className="bg-amber-50/60 border border-amber-200/90 rounded-sm p-4.5 space-y-3.5">
                   <div className="flex items-center justify-between pb-2 border-b border-amber-200/60">
                     <div className="flex items-center gap-2">

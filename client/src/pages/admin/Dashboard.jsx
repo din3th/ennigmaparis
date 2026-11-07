@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useApiQuery } from '../../hooks/useApi';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
@@ -8,46 +10,23 @@ import { API_BASE_URL } from '../../config/api';
 const COLORS = ['#000000', '#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
 
 const AdminDashboard = () => {
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const queryClient = useQueryClient();
+  const { data: stats, isLoading: statsLoading, error: statsError } = useApiQuery(['admin', 'stats'], '/admin/stats', { staleTime: 60 * 1000 });
+  const { data: discounts = [], isLoading: discountsLoading } = useApiQuery(['admin', 'discounts'], '/discounts');
+  const loading = statsLoading || discountsLoading;
+  const error = statsError ? 'Failed to load dashboard data. Please make sure you are signed in as an admin.' : null;
+  const fetchDashboardData = () => queryClient.invalidateQueries({ queryKey: ['admin'] });
 
   // Discount Codes state
-  const [discounts, setDiscounts] = useState([]);
   const [newCode, setNewCode] = useState({ code: '', discountType: 'percentage', value: 10, minSpend: 50 });
   const [discountMsg, setDiscountMsg] = useState('');
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  const fetchDashboardData = async () => {
-    const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
-    try {
-      const config = { headers: { Authorization: `Bearer ${token}` } };
-      const [statsRes, discountsRes] = await Promise.all([
-        axios.get(`${API_BASE_URL}/admin/stats`, config),
-        axios.get(`${API_BASE_URL}/discounts`, config),
-      ]);
-
-      setStats(statsRes.data);
-      setDiscounts(discountsRes.data);
-      setLoading(false);
-    } catch (err) {
-      console.error(err);
-      setError('Failed to load dashboard data. Please make sure you are logged in as admin.');
-      setLoading(false);
-    }
-  };
-
   const handleCreateDiscount = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
     try {
       await axios.post(
         `${API_BASE_URL}/discounts`,
-        newCode,
-        { headers: { Authorization: `Bearer ${token}` } }
+        newCode
       );
       setDiscountMsg('Discount code created successfully!');
       setNewCode({ code: '', discountType: 'percentage', value: 10, minSpend: 50 });
@@ -59,11 +38,8 @@ const AdminDashboard = () => {
 
   const handleDeleteDiscount = async (id) => {
     if (!window.confirm('Delete this discount code?')) return;
-    const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
     try {
-      await axios.delete(`${API_BASE_URL}/discounts/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await axios.delete(`${API_BASE_URL}/discounts/${id}`);
       fetchDashboardData();
     } catch (err) {
       alert('Failed to delete discount code');

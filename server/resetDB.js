@@ -1,36 +1,44 @@
 import mongoose from 'mongoose';
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import bcrypt from 'bcryptjs';
 import Product from './models/Product.js';
 import User from './models/User.js';
 
-dotenv.config();
-
-const MONGODB_URI = process.env.MONGODB_URI;
+/**
+ * DESTRUCTIVE: deletes all products and users, then creates one admin account
+ * from ADMIN_EMAIL / ADMIN_PASSWORD. Requires --yes to run.
+ */
+const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
+const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'admin@ennigmaparis.com').toLowerCase();
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
 const resetData = async () => {
+  if (!process.argv.includes('--yes')) {
+    console.error('This deletes ALL products and users. Re-run with --yes to confirm.');
+    process.exit(1);
+  }
+  if (!MONGODB_URI) {
+    console.error('MONGODB_URI is required');
+    process.exit(1);
+  }
+  if (!ADMIN_PASSWORD || ADMIN_PASSWORD.length < 12) {
+    console.error('Set ADMIN_PASSWORD (at least 12 characters) before running this script.');
+    process.exit(1);
+  }
+
   try {
-    console.log('Connecting to MongoDB...');
     await mongoose.connect(MONGODB_URI);
-    
-    console.log('Clearing existing products...');
     await Product.deleteMany({});
-    
-    console.log('Clearing existing users...');
     await User.deleteMany({});
 
-    console.log('Creating Admin User...');
-    const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash('admin123', salt);
-    
     await User.create({
       name: 'Admin',
-      email: 'admin@ennigmaparis.com',
-      passwordHash: passwordHash,
-      role: 'admin'
+      email: ADMIN_EMAIL,
+      passwordHash: await bcrypt.hash(ADMIN_PASSWORD, 10),
+      role: 'admin',
     });
 
-    console.log('Database reset successfully. Admin user created (admin@ennigmaparis.com / admin123).');
+    console.log(`Database reset. Admin account created for ${ADMIN_EMAIL}.`);
     process.exit(0);
   } catch (error) {
     console.error('Error resetting database:', error);

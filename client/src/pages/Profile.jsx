@@ -3,10 +3,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { User, MapPin, Lock, CheckCircle2, Package, Heart } from 'lucide-react';
 import { API_BASE_URL } from '../config/api';
+import { getCurrentUser, setCurrentUser } from '../utils/auth';
 
 const Profile = () => {
   const navigate = useNavigate();
-  const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
+  const token = getCurrentUser()?._id;
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -35,9 +36,7 @@ const Profile = () => {
     const fetchProfile = async () => {
       try {
         setLoading(true);
-        const { data } = await axios.get(`${API_BASE_URL}/users/profile`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const { data } = await axios.get(`${API_BASE_URL}/users/profile`);
 
         setName(data.name || '');
         setEmail(data.email || '');
@@ -70,8 +69,8 @@ const Profile = () => {
       return;
     }
 
-    if (password && password.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (password && password.length < 8) {
+      setError('Password must be at least 8 characters');
       return;
     }
 
@@ -86,14 +85,9 @@ const Profile = () => {
         ...(password ? { password } : {}),
       };
 
-      const { data } = await axios.put(`${API_BASE_URL}/users/profile`, payload, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const { data } = await axios.put(`${API_BASE_URL}/users/profile`, payload);
 
-      // Update local storage
-      const stored = localStorage.getItem('userInfo');
-      const parsed = stored ? JSON.parse(stored) : {};
-      localStorage.setItem('userInfo', JSON.stringify({ ...parsed, ...data }));
+      setCurrentUser(data);
 
       setMessage('Your profile and address settings have been updated.');
       setPassword('');

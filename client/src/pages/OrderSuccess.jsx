@@ -1,37 +1,42 @@
-import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import axios from 'axios';
-import { CheckCircle2, Download, Package, ArrowRight, Truck, ShieldCheck, MapPin, ExternalLink, Printer } from 'lucide-react';
-import { API_BASE_URL } from '../config/api';
+import { useState } from 'react';
+import { useParams, Link, useLocation } from 'react-router-dom';
+import { CheckCircle2, Download, Package, ArrowRight, Truck, ShieldCheck, MapPin, Printer } from 'lucide-react';
+import { useApiQuery } from '../hooks/useApi';
+import { startOnlinePayment, ONLINE_METHODS } from '../utils/payments';
 import { downloadInvoicePDF, openInvoicePDF } from '../utils/invoiceService';
 
 const OrderSuccess = () => {
   const { id } = useParams();
-  const [order, setOrder] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const location = useLocation();
+  const paymentParam = new URLSearchParams(location.search).get('payment');
   const [downloading, setDownloading] = useState(false);
-  const [error, setError] = useState(null);
+  const [paying, setPaying] = useState(false);
+  const [paymentError, setPaymentError] = useState(location.state?.paymentError || null);
 
-  useEffect(() => {
-    const fetchOrder = async () => {
-      try {
-        setLoading(true);
-        const token = localStorage.getItem('token') || localStorage.getItem('adminToken') || localStorage.getItem(`orderToken_${id}`);
-        const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
-        const { data } = await axios.get(`${API_BASE_URL}/orders/${id}`, config);
-        setOrder(data);
-        setLoading(false);
-      } catch (err) {
-        console.error('Error fetching order receipt:', err);
-        setError('Unable to load order receipt. Please check your order ID or contact customer support.');
-        setLoading(false);
-      }
-    };
+  const { data: order, isLoading: loading, error: queryError } = useApiQuery(['order', id], `/orders/${id}`, {
+    enabled: Boolean(id),
+    retry: false,
+    // After returning from a gateway, poll briefly until the signed callback marks the order paid.
+    refetchInterval: (query) =>
+      paymentParam === 'success' && query.state.data?.paymentStatus !== 'Completed' ? 3000 : false,
+  });
+  const error = queryError
+    ? 'Unable to load this order. If you placed it on another device, sign in to view it.'
+    : null;
 
-    if (id) {
-      fetchOrder();
+  const awaitingOnlinePayment =
+    order && ONLINE_METHODS.includes(order.paymentMethod) && order.paymentStatus !== 'Completed' && order.orderStatus !== 'Cancelled';
+
+  const handlePayNow = async () => {
+    setPaying(true);
+    setPaymentError(null);
+    try {
+      await startOnlinePayment(order);
+    } catch (err) {
+      setPaymentError(err.response?.data?.message || 'Could not start the online payment.');
+      setPaying(false);
     }
-  }, [id]);
+  };
 
   const handleDownload = async () => {
     setDownloading(true);
@@ -98,6 +103,24 @@ const OrderSuccess = () => {
         <p className="text-xs sm:text-sm text-gray-500 max-w-lg mx-auto font-sans leading-relaxed">
           Your order <span className="font-mono font-bold text-gray-900">#{order._id}</span> has been received by our atelier. A confirmation email with official invoice details has been dispatched.
         </p>
+
+        {awaitingOnlinePayment && (
+          <div role="status" className="mt-6 max-w-lg mx-auto border border-amber-200 bg-amber-50 text-amber-900 text-xs p-4 rounded-sm">
+            {paymentParam === 'success'
+              ? 'Thank you! We are waiting for the payment confirmation from the gateway. This page updates automatically.'
+              : paymentParam === 'cancelled'
+                ? 'The payment was cancelled. Your order is reserved; you can complete payment below.'
+                : 'This order has not been paid yet.'}
+            {paymentError && <p className="mt-2 text-red-700 font-semibold">{paymentError}</p>}
+            <button
+              onClick={handlePayNow}
+              disabled={paying}
+              className="mt-3 inline-flex items-center gap-2 bg-black text-white px-5 py-2.5 text-[11px] font-bold uppercase tracking-widest hover:bg-gray-800 disabled:opacity-50 cursor-pointer"
+            >
+              {paying ? 'Redirecting…' : `Pay now with ${order.paymentMethod}`}
+            </button>
+          </div>
+        )}
 
         {/* Action Buttons Header */}
         <div className="mt-8 flex flex-wrap justify-center gap-3">
@@ -197,11 +220,11 @@ const OrderSuccess = () => {
               {order.paymentStatus === 'Completed' ? 'Verified / Completed' : 'Pending Atelier Verification'}
             </span>
           </div>
-          {order.transferReceipt && (
+          {order.transferReceipt?.url && (
             <div className="flex justify-between text-xs items-center pt-1 border-t border-gray-200">
               <span className="text-gray-500">Confirmation Slip:</span>
               <a
-                href={order.transferReceipt.url.startsWith('http') || order.transferReceipt.url.startsWith('data:') ? order.transferReceipt.url : `${API_BASE_URL.replace('/api', '')}${order.transferReceipt.url}`}
+                href={order.transferReceipt.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-black underline font-semibold text-[11px] hover:text-gray-600 inline-flex items-center gap-1"

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, Suspense } from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { ShoppingBag, Search, Menu, User, ChevronDown, Heart, X, ArrowRight, Package, UserCheck } from 'lucide-react';
 import { useCart } from '../context/CartContext';
@@ -6,6 +6,8 @@ import { useWishlist } from '../context/WishlistContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { API_BASE_URL } from '../config/api';
+import { getCurrentUser, signOut } from '../utils/auth';
+import { useAppearance } from '../hooks/useApi';
 
 const MainLayout = () => {
   const { cartItems } = useCart();
@@ -21,34 +23,17 @@ const MainLayout = () => {
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterMsg, setNewsletterMsg] = useState(null);
   const [isSubmittingNewsletter, setIsSubmittingNewsletter] = useState(false);
-  const [announcement, setAnnouncement] = useState({
-    show: true,
-    text: 'Complimentary Worldwide Express Delivery on Orders Over $250 • ENNIGMA PARIS',
-  });
+  const { data: appearance } = useAppearance();
+  const announcement = {
+    show: appearance ? appearance.showAnnouncement !== false : true,
+    text: appearance?.announcementText || 'Complimentary Worldwide Express Delivery on Orders Over $250 • ENNIGMA PARIS',
+  };
 
-  useEffect(() => {
-    axios
-      .get(`${API_BASE_URL}/appearance`)
-      .then((res) => {
-        if (res.data) {
-          setAnnouncement({
-            show: res.data.showAnnouncement !== false,
-            text: res.data.announcementText || 'Complimentary Worldwide Express Delivery on Orders Over $250 • ENNIGMA PARIS',
-          });
-        }
-      })
-      .catch(() => {});
-  }, []);
+  const currentUser = getCurrentUser();
+  const isAdmin = currentUser?.role === 'admin';
 
-  const isAdmin = !!localStorage.getItem('adminToken');
-  const storedUser = localStorage.getItem('userInfo');
-  const currentUser = storedUser ? JSON.parse(storedUser) : null;
-
-  const handleLogout = () => {
-    localStorage.removeItem('adminToken');
-    localStorage.removeItem('adminInfo');
-    localStorage.removeItem('userInfo');
-    localStorage.removeItem('token');
+  const handleLogout = async () => {
+    await signOut();
     navigate(0);
   };
 
@@ -478,7 +463,9 @@ const MainLayout = () => {
 
       {/* Main Content */}
       <main className="flex-grow">
-        <Outlet />
+        <Suspense fallback={<div className="min-h-[60vh] flex items-center justify-center" role="status" aria-label="Loading"><div className="w-8 h-8 border-2 border-black border-t-transparent rounded-full animate-spin" /></div>}>
+          <Outlet />
+        </Suspense>
       </main>
 
       {/* Footer */}

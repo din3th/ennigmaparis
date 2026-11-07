@@ -25,7 +25,7 @@ export const formatOrderTelegramMessage = (order) => {
     ? `${address.street || ''}, ${address.city || ''}, ${address.state || ''}`.replace(/^, |, $/g, '')
     : 'Not provided';
 
-  const receiptNotice = order.transferReceipt ? `\n📎 <b>Bank Receipt:</b> Uploaded (Ready for verification in Admin)` : '';
+  const receiptNotice = order.transferReceipt?.url ? `\n📎 <b>Bank Receipt:</b> Uploaded (Ready for verification in Admin)` : '';
 
   return `🛍️ <b>NEW ORDER ALERT - ENNIGMA PARIS</b>\n` +
     `━━━━━━━━━━━━━━━━━━━━━━\n` +

@@ -1,16 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { X, Ruler } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { API_BASE_URL, resolveImageUrl } from '../config/api';
+import { useApiQuery } from '../hooks/useApi';
 import SizeGuideModal from '../components/SizeGuideModal';
+import { getCurrentUser } from '../utils/auth';
 
 const ProductDetail = () => {
   const { slug } = useParams();
-  const [product, setProduct] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [selectedSize, setSelectedSize] = useState('');
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   
@@ -30,22 +30,14 @@ const ProductDetail = () => {
   const { toggleWishlist, isInWishlist } = useWishlist();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchProduct = async () => {
-      try {
-        const { data } = await axios.get(`${API_BASE_URL}/products/${slug}`);
-        setProduct(data);
-        if (data.sizes && data.sizes.length > 0) {
-          setSelectedSize(data.sizes[0]);
-        }
-        setLoading(false);
-      } catch (error) {
-        console.error(error);
-        setLoading(false);
-      }
-    };
-    fetchProduct();
-  }, [slug]);
+  const { data: product = null, isLoading: loading, refetch: refetchProduct } = useApiQuery(['product', slug], `/products/${slug}`, { retry: false });
+
+  // Default the size picker to the first available size once the product loads.
+  const [sizeInitFor, setSizeInitFor] = useState(null);
+  if (product && sizeInitFor !== product._id) {
+    setSizeInitFor(product._id);
+    setSelectedSize(product.sizes?.[0] || '');
+  }
 
   const handleAddToCart = (e) => {
     e.preventDefault();
@@ -64,8 +56,7 @@ const ProductDetail = () => {
     setReviewError(null);
 
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
+      if (!getCurrentUser()) {
         setReviewError('Please sign in to leave a product review.');
         setSubmittingReview(false);
         return;
@@ -73,16 +64,13 @@ const ProductDetail = () => {
 
       await axios.post(
         `${API_BASE_URL}/products/${product._id || product.id}/reviews`,
-        { rating, comment },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { rating, comment }
       );
 
       setReviewMessage('Review submitted successfully!');
       setComment('');
       
-      // Refresh product details
-      const { data } = await axios.get(`${API_BASE_URL}/products/${slug}`);
-      setProduct(data);
+      await refetchProduct();
     } catch (err) {
       setReviewError(err.response?.data?.message || 'Failed to submit review');
     } finally {

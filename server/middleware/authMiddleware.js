@@ -1,133 +1,101 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import { config, getJwtSecret } from '../config/env.js';
+import { verifyOrderAccessCookie } from '../utils/generateToken.js';
 
-export const protect = async (req, res, next) => {
-  let token;
-
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-    try {
-      token = req.headers.authorization.split(' ')[1];
-
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'supersecretjwtkeythatshouldbechanged');
-
-      const mongoose = (await import('mongoose')).default;
-      let foundUser = null;
-
-      if (mongoose.connection.readyState === 1) {
-        try {
-          foundUser = await User.findById(decoded.id).select('-passwordHash');
-        } catch (dbErr) {
-          console.warn('DB user lookup warning:', dbErr.message);
-        }
+/** Minimal cookie parser so we don't need another dependency. */
+export const parseCookies = (req, res, next) => {
+  const header = req.headers.cookie;
+  req.cookies = {};
+  if (header) {
+    for (const part of header.split(';')) {
+      const idx = part.indexOf('=');
+      if (idx === -1) continue;
+      const key = part.slice(0, idx).trim();
+      const value = part.slice(idx + 1).trim();
+      try {
+        req.cookies[key] = decodeURIComponent(value);
+      } catch {
+        req.cookies[key] = value;
       }
-
-      if (!foundUser) {
-        return res.status(401).json({ message: 'Not authorized, user account not found or deactivated' });
-      }
-
-      req.user = foundUser;
-      return next();
-    } catch (error) {
-      console.error('Token validation error:', error.message);
-      return res.status(401).json({ message: 'Not authorized, token failed' });
     }
   }
+  next();
+};
 
+/**
+ * Blocks cross-site request forgery for cookie-authenticated requests:
+ * every state-changing API call must carry the X-Requested-With header,
+ * which browsers will not let a cross-origin form or image set.
+ */
+export const csrfGuard = (exemptPaths = []) => (req, res, next) => {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+  if (exemptPaths.some((p) => req.path === p || req.originalUrl.split('?')[0] === p)) return next();
+  if (req.headers['x-requested-with'] === 'XMLHttpRequest') return next();
+  return res.status(403).json({ message: 'Missing X-Requested-With header' });
+};
+
+const extractToken = (req) => {
+  const auth = req.headers.authorization;
+  if (auth && auth.startsWith('Bearer ')) return auth.slice(7);
+  return req.cookies?.[config.sessionCookieName] || null;
+};
+
+const loadUser = async (token) => {
+  const decoded = jwt.verify(token, getJwtSecret());
+  if (!decoded.id || decoded.type === 'order_access') return null;
+  return User.findById(decoded.id).select('-passwordHash');
+};
+
+export const protect = async (req, res, next) => {
+  const token = extractToken(req);
   if (!token) {
-    return res.status(401).json({ message: 'Not authorized, no token' });
+    return res.status(401).json({ message: 'Not authorized, please sign in' });
+  }
+  try {
+    const user = await loadUser(token);
+    if (!user) {
+      return res.status(401).json({ message: 'Not authorized, account not found' });
+    }
+    req.user = user;
+    return next();
+  } catch {
+    return res.status(401).json({ message: 'Not authorized, session expired or invalid' });
   }
 };
 
 export const optionalAuth = async (req, res, next) => {
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+  const token = extractToken(req);
+  if (token) {
     try {
-      const token = req.headers.authorization.split(' ')[1];
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'supersecretjwtkeythatshouldbechanged');
-
-      const mongoose = (await import('mongoose')).default;
-      let foundUser = null;
-      if (mongoose.connection.readyState === 1) {
-        try {
-          foundUser = await User.findById(decoded.id).select('-passwordHash');
-        } catch (dbErr) {}
-      }
-
-      if (foundUser) {
-        req.user = foundUser;
-      }
-    } catch (e) {}
+      const user = await loadUser(token);
+      if (user) req.user = user;
+    } catch {
+      // Invalid or expired token: continue as a guest.
+    }
   }
   next();
 };
 
 export const admin = (req, res, next) => {
-  if (req.user && req.user.role === 'admin') {
-    next();
-  } else {
-    res.status(401).json({ message: 'Not authorized as an admin' });
-  }
+  if (req.user && req.user.role === 'admin') return next();
+  return res.status(403).json({ message: 'Not authorized as an admin' });
 };
 
 /**
- * Middleware for securing order and invoice endpoints.
- * Accepts Bearer token in Authorization header OR token in query param.
- * Can be an authenticated User token or a guest Order Access token.
+ * For order and invoice endpoints: attaches the signed-in user (if any) and
+ * the list of order ids this browser placed as a guest. The controller then
+ * decides with canAccessOrder().
  */
 export const protectOrderAccess = async (req, res, next) => {
-  let token = null;
+  req.accessibleOrderIds = verifyOrderAccessCookie(req);
+  return optionalAuth(req, res, next);
+};
 
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-    token = req.headers.authorization.split(' ')[1];
-  } else if (req.query.token) {
-    token = req.query.token;
-  }
-
-  if (token) {
-    try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'supersecretjwtkeythatshouldbechanged');
-
-      if (decoded.type === 'order_access') {
-        req.orderAccess = decoded;
-        return next();
-      }
-
-      if (decoded.id) {
-        try {
-          const mongoose = (await import('mongoose')).default;
-          if (mongoose.connection.readyState === 1) {
-            const foundUser = await User.findById(decoded.id).select('-passwordHash');
-            if (foundUser) {
-              req.user = foundUser;
-              return next();
-            }
-          }
-        } catch (dbErr) {
-          console.warn('DB lookup in protectOrderAccess:', dbErr.message);
-        }
-
-        // Cryptographically verified admin payload fallback
-        if (decoded.role === 'admin') {
-          req.user = {
-            _id: decoded.id,
-            role: 'admin',
-            email: decoded.email,
-            name: decoded.name || 'Admin',
-          };
-          return next();
-        } else if (decoded.email) {
-          req.user = {
-            _id: decoded.id,
-            role: decoded.role || 'customer',
-            email: decoded.email,
-            name: decoded.name,
-          };
-          return next();
-        }
-      }
-    } catch (err) {
-      console.warn('Order token verification failed:', err.message);
-    }
-  }
-
-  next();
+export const canAccessOrder = (req, order) => {
+  if (!order) return false;
+  if (req.user?.role === 'admin') return true;
+  const orderUserId = order.user?._id || order.user;
+  if (req.user && orderUserId && String(orderUserId) === String(req.user._id)) return true;
+  return (req.accessibleOrderIds || []).includes(String(order._id));
 };

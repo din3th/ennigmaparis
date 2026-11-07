@@ -27,7 +27,10 @@ export const CartProvider = ({ children }) => {
         name: product.name,
         slug: product.slug, 
         image: product.images[0], 
-        price: product.price, 
+        // Match what the server will charge (sale price when one is active).
+        price: product.salePrice && product.salePrice > 0 && product.salePrice < product.price
+          ? product.salePrice
+          : product.price, 
         size, 
         qty 
       }]);

@@ -1,120 +1,17 @@
+import { assertRequiredEnv, config } from './config/env.js';
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
 import Media from './models/Media.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-dotenv.config();
-
-const app = express();
-
-// Trust reverse proxies (essential for Vercel Serverless & AWS Lambdas)
-app.set('trust proxy', 1);
-
-// Security Headers
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" },
-  crossOriginOpenerPolicy: false,
-  contentSecurityPolicy: false,
-}));
-
-// Rate Limiters (active in standalone Node.js, disabled on ephemeral serverless lambdas)
-if (!process.env.VERCEL) {
-  const apiLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 300,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: { message: 'Too many requests, please try again later.' }
-  });
-
-  const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 20,
-    message: { message: 'Too many attempts, please try again after 15 minutes.' }
-  });
-
-  app.use('/api', apiLimiter);
-  app.use('/api/users/login', authLimiter);
-  app.use('/api/users/register', authLimiter);
-  app.use('/api/payments', authLimiter);
-}
-
-const allowedOrigins = [
-  process.env.FRONTEND_URL,
-  process.env.CLIENT_URL,
-  'http://localhost:5174',
-  'http://localhost:5173',
-  'http://localhost:3000'
-].filter(Boolean);
-
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    if (
-      allowedOrigins.includes(origin) ||
-      /^https:\/\/[a-zA-Z0-9_-]+\.vercel\.app$/.test(origin)
-    ) {
-      return callback(null, true);
-    }
-    return callback(new Error('Blocked by CORS policy: Origin not allowed'), false);
-  },
-  credentials: true
-}));
 import { connectDB, dbMiddleware } from './config/db.js';
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-const uploadsDir = process.env.VERCEL ? path.join('/tmp', 'uploads') : path.join(__dirname, 'uploads');
-try {
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-  }
-} catch (e) {
-  console.warn('[Uploads Directory Init]:', e.message);
-}
-app.use('/uploads', express.static(uploadsDir));
-
-// Also serve fallback root uploads if it exists
-if (!process.env.VERCEL) {
-  const rootUploads = path.join(process.cwd(), 'uploads');
-  if (rootUploads !== uploadsDir && fs.existsSync(rootUploads)) {
-    app.use('/uploads', express.static(rootUploads));
-  }
-}
-
-// Resilient Fallback Image Serving: If file is not present on disk (such as on Vercel serverless), serve from MongoDB Atlas
-app.get(/^\/uploads\/(.+)$/, dbMiddleware, async (req, res, next) => {
-  try {
-    const rawParam = req.params[0] || req.path;
-    const filename = path.basename(rawParam);
-    const media = await Media.findOne({ filename });
-    if (!media) {
-      return res.status(404).json({ message: 'File not found' });
-    }
-    res.set({
-      'Content-Type': media.contentType || 'image/jpeg',
-      'Content-Length': media.size || media.data.length,
-      'Cache-Control': 'public, max-age=31536000, immutable',
-      'Cross-Origin-Resource-Policy': 'cross-origin',
-    });
-    return res.end(media.data);
-  } catch (err) {
-    console.error('Error fetching media from MongoDB:', err);
-    return res.status(500).json({ message: 'Error retrieving file' });
-  }
-});
-
-// Ensure DB is connected before any API route executes (critical for Vercel serverless cold-starts)
-app.use('/api', dbMiddleware);
+import { parseCookies, csrfGuard } from './middleware/authMiddleware.js';
+import { errorHandler, notFound } from './middleware/errorHandler.js';
+import { apiLimiter } from './middleware/rateLimiters.js';
+import logger from './utils/logger.js';
 
 import productRoutes from './routes/productRoutes.js';
 import userRoutes from './routes/userRoutes.js';
@@ -126,7 +23,102 @@ import paymentRoutes from './routes/paymentRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import appearanceRoutes from './routes/appearanceRoutes.js';
 
-// Routes
+// Fail fast on missing secrets instead of silently using insecure defaults.
+assertRequiredEnv();
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const app = express();
+
+// Trust the first reverse proxy (Vercel / Docker ingress) so req.ip is the client.
+app.set('trust proxy', 1);
+
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  crossOriginOpenerPolicy: false,
+  contentSecurityPolicy: false,
+}));
+
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  process.env.CLIENT_URL,
+  'http://localhost:5174',
+  'http://localhost:5173',
+  'http://localhost:3000',
+].filter(Boolean);
+
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin) || /^https:\/\/[a-zA-Z0-9_-]+\.vercel\.app$/.test(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('Blocked by CORS policy: Origin not allowed'), false);
+  },
+  credentials: true,
+}));
+
+// Keep the raw body for webhook signature verification (Stripe signs raw bytes).
+app.use(express.json({
+  limit: '1mb',
+  verify: (req, res, buf) => {
+    req.rawBody = buf;
+  },
+}));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+app.use(parseCookies);
+
+// Uploaded files: lock them down so a malicious file (e.g. an old SVG) cannot run script.
+const lockDownUpload = (res) => {
+  res.set({
+    'Content-Security-Policy': "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox",
+    'X-Content-Type-Options': 'nosniff',
+    'Cross-Origin-Resource-Policy': 'cross-origin',
+  });
+};
+
+const uploadsDir = config.isServerless ? path.join('/tmp', 'uploads') : path.join(__dirname, 'uploads');
+try {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+} catch (e) {
+  logger.warn('Could not create uploads directory', { err: e });
+}
+app.use('/uploads', express.static(uploadsDir, { setHeaders: lockDownUpload, maxAge: '30d' }));
+
+// Fallback: files persisted to MongoDB (used when Cloudinary is not configured on serverless).
+app.get(/^\/uploads\/(.+)$/, dbMiddleware, async (req, res) => {
+  const filename = path.basename(req.params[0] || req.path);
+  const media = await Media.findOne({ filename });
+  if (!media) {
+    return res.status(404).json({ message: 'File not found' });
+  }
+  lockDownUpload(res);
+  res.set({
+    'Content-Type': media.contentType || 'application/octet-stream',
+    'Content-Length': media.size || media.data.length,
+    'Cache-Control': 'public, max-age=31536000, immutable',
+  });
+  if (!/^image\/(jpeg|png|webp|gif|avif)$/.test(media.contentType || '')) {
+    res.set('Content-Disposition', `attachment; filename="${filename}"`);
+  }
+  return res.end(media.data);
+});
+
+app.get('/api/health', (req, res) => {
+  const connected = mongoose.connection.readyState === 1;
+  res.status(connected ? 200 : 503).json({
+    status: connected ? 'healthy' : 'degraded',
+    database: { connected },
+    environment: process.env.NODE_ENV || 'development',
+  });
+});
+
+const csrfExempt = ['/api/payments/webhook', '/api/payments/payhere/notify'];
+
+app.use('/api', apiLimiter);
+app.use('/api', csrfGuard(csrfExempt));
+app.use('/api', dbMiddleware);
+
 app.use('/api/products', productRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/upload', uploadRoutes);
@@ -136,50 +128,25 @@ app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/appearance', appearanceRoutes);
+app.use('/api', notFound);
 
-app.get('/', (req, res) => {
-  res.status(200).json({ status: 'ok', message: 'ENNIGMA Paris Backend API Service is live and operational' });
-});
-
-// Comprehensive Health & Sync Status Endpoint
-app.get('/api/health', (req, res) => {
-  const isConnected = mongoose.connection.readyState === 1;
-  const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI || '';
-  
-  // Sanitize URI to display cluster domain without revealing credentials
-  let clusterInfo = 'Not configured';
-  if (mongoUri.includes('@')) {
-    clusterInfo = mongoUri.split('@')[1].split('/')[0];
-  } else if (mongoUri.includes('localhost')) {
-    clusterInfo = 'Local MongoDB (localhost)';
-  }
-
-  res.status(200).json({
-    status: isConnected ? 'healthy' : 'degraded',
-    database: {
-      connected: isConnected,
-      cluster: clusterInfo,
-      readyState: mongoose.connection.readyState, // 1 = connected, 0 = disconnected, 2 = connecting
-    },
-    serverMode: process.env.VERCEL ? 'Vercel Serverless Function' : 'Standalone Express Node.js',
-    environment: process.env.NODE_ENV || 'development',
-    syncNotice: isConnected 
-      ? 'Sync is ACTIVE: Real-time read/write directly to shared MongoDB Atlas cluster.' 
-      : 'Sync is INACTIVE: MONGODB_URI missing or connection blocked. Verify Vercel Environment Variables & Atlas 0.0.0.0/0 IP whitelist.',
-  });
-});
-
-// Database Connection & Server Listener
-const PORT = process.env.PORT || 3001;
-
-if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
+// In Docker / standalone mode, also serve the built storefront.
+const clientDist = path.join(__dirname, '..', 'client', 'dist');
+if (!config.isServerless && fs.existsSync(clientDist)) {
+  app.use(express.static(clientDist, { index: false, maxAge: '1h' }));
+  app.get(/^(?!\/api|\/uploads).*/, (req, res) => res.sendFile(path.join(clientDist, 'index.html')));
+} else {
+  app.get('/', (req, res) => res.json({ status: 'ok', message: 'ENNIGMA API is running' }));
 }
 
-// Initiate DB connection
+app.use(errorHandler);
+
+const PORT = process.env.PORT || 3001;
+
+if (process.env.NODE_ENV !== 'test' && !process.env.VITEST && !config.isServerless) {
+  app.listen(PORT, () => logger.info(`Server running on port ${PORT}`));
+}
+
 connectDB();
 
 export default app;
-

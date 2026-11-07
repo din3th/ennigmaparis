@@ -4,6 +4,7 @@ import axios from 'axios';
 import { Mail, Lock, User, Phone, CheckCircle2, ArrowRight } from 'lucide-react';
 
 import { API_BASE_URL } from '../config/api';
+import { setCurrentUser } from '../utils/auth';
 
 const Register = () => {
   const [name, setName] = useState('');
@@ -26,8 +27,8 @@ const Register = () => {
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters long');
       return;
     }
 
@@ -42,8 +43,7 @@ const Register = () => {
       });
 
       // Save user session
-      localStorage.setItem('userInfo', JSON.stringify(data));
-      localStorage.setItem('token', data.token);
+      setCurrentUser(data);
 
       setSuccessMsg(true);
 

@@ -391,7 +391,7 @@ export const sendAdminOrderNotificationEmail = async (order, recipientsOverride 
     </tr>
   `).join('');
 
-  const receiptHtml = order.transferReceipt ? `
+  const receiptHtml = order.transferReceipt?.url ? `
     <div style="background-color: #fff8e1; border: 1px solid #ffe082; padding: 12px 16px; border-radius: 4px; margin-top: 20px;">
       <strong style="color: #f57f17; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Bank Fund Transfer Receipt Attached</strong>
       <p style="margin: 4px 0 8px 0; font-size: 12px; color: #555;">The customer has submitted their bank deposit/transfer slip.</p>
